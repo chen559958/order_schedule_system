@@ -15,6 +15,10 @@ import {
   updateScheduleDeliveryTime,
   markScheduleAsCompleted,
   getScheduleByOrderId,
+  getAllCustomers,
+  getOrdersByDateRange,
+  getOrdersWithCustomers,
+  getSchedulesWithDetails,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 
@@ -169,6 +173,56 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await getScheduleByOrderId(input.orderId);
       }),
+
+    getTodaySchedulesWithDetails: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role === "user") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Buyers cannot view schedules",
+        });
+      }
+      return await getSchedulesWithDetails(new Date());
+    }),
+  }),
+
+  // Admin procedures
+  admin: router({
+    getAllCustomers: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can view all customers",
+        });
+      }
+      return await getAllCustomers();
+    }),
+
+    getOrdersByDateRange: protectedProcedure
+      .input(
+        z.object({
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only admins can view order statistics",
+          });
+        }
+        return await getOrdersByDateRange(input.startDate, input.endDate);
+      }),
+
+    getOrdersWithCustomers: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can view orders with customer details",
+        });
+      }
+      return await getOrdersWithCustomers();
+    }),
   }),
 });
 

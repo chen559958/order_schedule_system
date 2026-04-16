@@ -178,3 +178,58 @@ export async function getScheduleByOrderId(orderId: number) {
   const result = await db.select().from(schedules).where(eq(schedules.orderId, orderId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
+
+// Admin queries - Customer management
+export async function getAllCustomers() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(customers);
+}
+
+// Admin queries - Order statistics
+export async function getOrdersByDateRange(startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(orders).where(
+    and(
+      gte(orders.createdAt, startDate),
+      lt(orders.createdAt, endDate)
+    )
+  );
+}
+
+// Admin queries - Get orders with customer details
+export async function getOrdersWithCustomers() {
+  const db = await getDb();
+  if (!db) return [];
+  const allOrders = await db.select().from(orders);
+  const enriched = await Promise.all(
+    allOrders.map(async (order) => {
+      const customer = await db.select().from(customers).where(eq(customers.id, order.customerId)).limit(1);
+      return {
+        ...order,
+        customer: customer.length > 0 ? customer[0] : null,
+      };
+    })
+  );
+  return enriched;
+}
+
+// Admin queries - Get schedules with full details
+export async function getSchedulesWithDetails(date: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  const scheduleList = await getSchedulesByDate(date);
+  const enriched = await Promise.all(
+    scheduleList.map(async (schedule) => {
+      const order = await getOrderById(schedule.orderId);
+      const customer = order ? await db.select().from(customers).where(eq(customers.id, order.customerId)).limit(1) : null;
+      return {
+        ...schedule,
+        order: order,
+        customer: customer && customer.length > 0 ? customer[0] : null,
+      };
+    })
+  );
+  return enriched;
+}

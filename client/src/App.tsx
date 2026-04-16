@@ -12,10 +12,12 @@ import AdminDashboard from "./pages/AdminDashboard";
 import StaffSchedule from "./pages/StaffSchedule";
 import AuthPage from "./pages/AuthPage";
 import { useAuth } from "./_core/hooks/useAuth";
+import { useAuthToken } from "./_core/hooks/useAuthToken";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
 function Router() {
+  useAuthToken(); // Handle OAuth callback token
   const { user, loading } = useAuth();
   const [location, setLocation] = useLocation();
 
