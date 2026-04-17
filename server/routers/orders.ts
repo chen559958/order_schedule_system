@@ -148,7 +148,7 @@ export const ordersRouter = router({
       const startDate = new Date(input.year, input.month - 1, 1);
       const endDate = new Date(input.year, input.month, 0, 23, 59, 59);
 
-      const [orders, total] = await Promise.all([
+      const [orders, total, monthlyStats] = await Promise.all([
         prisma.order.findMany({
           where: {
             orderDate: {
@@ -169,10 +169,19 @@ export const ordersRouter = router({
             },
           },
         }),
+        prisma.order.aggregate({
+          where: {
+            orderDate: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          _sum: { amount: true, bags: true },
+        }),
       ]);
 
-      const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0);
-      const totalBags = orders.reduce((sum, order) => sum + order.bags, 0);
+      const totalAmount = monthlyStats._sum.amount || 0;
+      const totalBags = monthlyStats._sum.bags || 0;
 
       return {
         orders,
