@@ -1,0 +1,10 @@
+[2026-04-17T09:17:14.095Z] Dev server process group stopped
+[2026-04-17T09:17:14.099Z] ELIFECYCLE  Command failed.
+[2026-04-17T09:17:14.099Z] WARN   Local package.json exists, but node_modules missing, did you mean to install?
+[2026-04-17T09:17:14.115Z] Dev server exited with code -15
+[2026-04-17T09:17:17.111Z] Starting dev server with command: pnpm run dev
+[2026-04-17T09:17:17.530Z] ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json (or package.yaml, or package.json5) was found in "/home/ubuntu/order_schedule_system".
+[2026-04-17T09:17:17.553Z] Dev server exited with code 1
+[2026-04-17T09:49:20.901Z] Starting dev server with command: pnpm run dev
+[2026-04-17T09:49:21.316Z] ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND  No package.json (or package.yaml, or package.json5) was found in "/home/ubuntu/order_schedule_system".
+[2026-04-17T09:49:21.336Z] Dev server exited with code 1
