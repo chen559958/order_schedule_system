@@ -4,7 +4,7 @@ import { createContext } from './context.js';
 import { appRouter } from './routers/index.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(cors());
 app.use(express.json());

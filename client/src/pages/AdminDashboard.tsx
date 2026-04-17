@@ -2,10 +2,38 @@ import { useState, useEffect } from 'react';
 import { trpc } from '../lib/trpc';
 
 interface User {
-  id: number;
+  id: string;
   email: string;
   name: string;
   role: string;
+}
+
+interface Schedule {
+  id: string;
+  userId: string;
+  orderId: string;
+  scheduleDate: string;
+  deliveryTime?: string;
+  deliveryType: string;
+  isCompleted: boolean;
+}
+
+interface Member {
+  id: string;
+  email: string;
+  name?: string;
+  createdAt: string;
+}
+
+interface Order {
+  id: string;
+  userId: string;
+  orderDate: string;
+  bags: number;
+  amount: number;
+  deliveryMethod: string;
+  paymentMethod: string;
+  status: string;
 }
 
 export function AdminDashboard() {
@@ -48,315 +76,163 @@ export function AdminDashboard() {
   );
 
   if (!user) {
-    return <div style={{ padding: '20px' }}>載入中...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const todaySchedules = todaySchedulesQuery.data;
-
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '30px' }}>
-        <h1>管理員儀表板</h1>
-        <p>歡迎, {user.name}!</p>
+    <div className="min-h-screen bg-gray-100">
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        </div>
       </div>
 
-      {/* 導航標籤 */}
-      <div style={{ marginBottom: '20px', borderBottom: '2px solid #ddd' }}>
-        <button
-          onClick={() => setActiveTab('today')}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: activeTab === 'today' ? '#007bff' : 'transparent',
-            color: activeTab === 'today' ? 'white' : 'black',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px',
-            marginRight: '10px',
-          }}
-        >
-          今日排程
-        </button>
-        <button
-          onClick={() => setActiveTab('members')}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: activeTab === 'members' ? '#007bff' : 'transparent',
-            color: activeTab === 'members' ? 'white' : 'black',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px',
-            marginRight: '10px',
-          }}
-        >
-          會員管理
-        </button>
-        <button
-          onClick={() => setActiveTab('stats')}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: activeTab === 'stats' ? '#007bff' : 'transparent',
-            color: activeTab === 'stats' ? 'white' : 'black',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px',
-          }}
-        >
-          訂單統計
-        </button>
-      </div>
-
-      {/* 今日排程 */}
-      {activeTab === 'today' && (
-        <div>
-          <h2>今日排程</h2>
-          {todaySchedulesQuery.isLoading ? (
-            <p>載入中...</p>
-          ) : (
-            <div>
-              {/* 上門取件 */}
-              <div style={{ marginBottom: '30px' }}>
-                <h3>上門取件 ({todaySchedules?.['door-to-door-pickup']?.length || 0})</h3>
-                {todaySchedules?.['door-to-door-pickup']?.length === 0 ? (
-                  <p>無排程</p>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>時間</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>會員</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>袋數</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>狀態</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {todaySchedules?.['door-to-door-pickup']?.map((schedule) => (
-                        <tr key={schedule.id} style={{ borderBottom: '1px solid #eee' }}>
-                          <td style={{ padding: '10px' }}>{schedule.deliveryTime || '-'}</td>
-                          <td style={{ padding: '10px' }}>{schedule.user.name}</td>
-                          <td style={{ padding: '10px' }}>{schedule.order.bags}</td>
-                          <td style={{ padding: '10px' }}>
-                            {schedule.isCompleted ? '已完成' : '待處理'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* 上門送回 */}
-              <div style={{ marginBottom: '30px' }}>
-                <h3>上門送回 ({todaySchedules?.['door-to-door-return']?.length || 0})</h3>
-                {todaySchedules?.['door-to-door-return']?.length === 0 ? (
-                  <p>無排程</p>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>時間</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>會員</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>袋數</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>狀態</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {todaySchedules?.['door-to-door-return']?.map((schedule) => (
-                        <tr key={schedule.id} style={{ borderBottom: '1px solid #eee' }}>
-                          <td style={{ padding: '10px' }}>{schedule.deliveryTime || '-'}</td>
-                          <td style={{ padding: '10px' }}>{schedule.user.name}</td>
-                          <td style={{ padding: '10px' }}>{schedule.order.bags}</td>
-                          <td style={{ padding: '10px' }}>
-                            {schedule.isCompleted ? '已完成' : '待處理'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* 自行送達 */}
-              <div>
-                <h3>自行送達 ({todaySchedules?.['self-delivery']?.length || 0})</h3>
-                {todaySchedules?.['self-delivery']?.length === 0 ? (
-                  <p>無排程</p>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>時間</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>會員</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>袋數</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>狀態</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {todaySchedules?.['self-delivery']?.map((schedule) => (
-                        <tr key={schedule.id} style={{ borderBottom: '1px solid #eee' }}>
-                          <td style={{ padding: '10px' }}>{schedule.deliveryTime || '-'}</td>
-                          <td style={{ padding: '10px' }}>{schedule.user.name}</td>
-                          <td style={{ padding: '10px' }}>{schedule.order.bags}</td>
-                          <td style={{ padding: '10px' }}>
-                            {schedule.isCompleted ? '已完成' : '待處理'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 會員管理 */}
-      {activeTab === 'members' && (
-        <div>
-          <h2>會員管理</h2>
-          <div style={{ marginBottom: '20px' }}>
-            <input
-              type="text"
-              placeholder="搜尋會員名稱或郵箱..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px',
-                fontSize: '16px',
-                borderRadius: '4px',
-                border: '1px solid #ddd',
-              }}
-            />
-          </div>
-
-          {membersSearchQuery.isLoading ? (
-            <p>搜尋中...</p>
-          ) : membersSearchQuery.data?.users.length === 0 ? (
-            <p>無搜尋結果</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #ddd' }}>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>姓名</th>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>郵箱</th>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>加入日期</th>
-                </tr>
-              </thead>
-              <tbody>
-                {membersSearchQuery.data?.users.map((member) => (
-                  <tr key={member.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '10px' }}>{member.name}</td>
-                    <td style={{ padding: '10px' }}>{member.email}</td>
-                    <td style={{ padding: '10px' }}>
-                      {new Date(member.createdAt).toLocaleDateString('zh-TW')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {/* 訂單統計 */}
-      {activeTab === 'stats' && (
-        <div>
-          <h2>訂單統計</h2>
-          <div style={{ marginBottom: '20px' }}>
-            <label>
-              選擇月份:
-              <input
-                type="month"
-                value={`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`}
-                onChange={(e) => {
-                  const [year, month] = e.target.value.split('-');
-                  setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1));
-                }}
-                style={{ marginLeft: '10px', padding: '5px' }}
-              />
-            </label>
-          </div>
-
-          {statsQuery.isLoading ? (
-            <p>載入中...</p>
-          ) : (
-            <div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '20px',
-                  marginBottom: '30px',
-                }}
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg">
+          <div className="border-b border-gray-200">
+            <nav className="flex -mb-px" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('today')}
+                className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                  activeTab === 'today'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
               >
-                <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '4px' }}>
-                  <h3>總訂單數</h3>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{statsQuery.data?.total}</p>
-                </div>
-                <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '4px' }}>
-                  <h3>總金額</h3>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                    ${statsQuery.data?.totalAmount.toFixed(2)}
-                  </p>
-                </div>
-                <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '4px' }}>
-                  <h3>總袋數</h3>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{statsQuery.data?.totalBags}</p>
-                </div>
-              </div>
+                Today's Schedule
+              </button>
+              <button
+                onClick={() => setActiveTab('members')}
+                className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                  activeTab === 'members'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Members
+              </button>
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`py-4 px-6 border-b-2 font-medium text-sm ${
+                  activeTab === 'stats'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Statistics
+              </button>
+            </nav>
+          </div>
 
-              <h3>訂單明細</h3>
-              {statsQuery.data?.orders.length === 0 ? (
-                <p>本月無訂單</p>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #ddd' }}>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>日期</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>會員</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>袋數</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>金額</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>配送方式</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {statsQuery.data?.orders.map((order) => (
-                      <tr key={order.id} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '10px' }}>
-                          {new Date(order.orderDate).toLocaleDateString('zh-TW')}
-                        </td>
-                        <td style={{ padding: '10px' }}>{order.user.name}</td>
-                        <td style={{ padding: '10px' }}>{order.bags}</td>
-                        <td style={{ padding: '10px' }}>${order.amount.toFixed(2)}</td>
-                        <td style={{ padding: '10px' }}>{order.deliveryMethod}</td>
-                      </tr>
+          <div className="p-6">
+            {/* Today's Schedule Tab */}
+            {activeTab === 'today' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Today's Schedule</h2>
+                {todaySchedulesQuery.isLoading ? (
+                  <p>Loading...</p>
+                ) : todaySchedulesQuery.data ? (
+                  <div className="space-y-4">
+                    {Object.entries(todaySchedulesQuery.data).map(([type, schedules]: [string, any]) => (
+                      <div key={type}>
+                        <h3 className="font-semibold text-gray-700 mb-2">{type}</h3>
+                        {schedules.length > 0 ? (
+                          <ul className="space-y-2">
+                            {schedules.map((schedule: Schedule) => (
+                              <li key={schedule.id} className="bg-gray-50 p-3 rounded">
+                                <p className="text-sm text-gray-600">
+                                  {schedule.user?.name || 'Unknown'} - {schedule.deliveryTime || 'No time set'}
+                                </p>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-gray-500 text-sm">No schedules</p>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+                  </div>
+                ) : (
+                  <p>No data</p>
+                )}
+              </div>
+            )}
 
-      <div style={{ marginTop: '30px' }}>
-        <button
-          onClick={() => {
-            localStorage.removeItem('user');
-            window.location.href = '/';
-          }}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          登出
-        </button>
+            {/* Members Tab */}
+            {activeTab === 'members' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Search Members</h2>
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+                />
+                {membersSearchQuery.isLoading ? (
+                  <p>Loading...</p>
+                ) : membersSearchQuery.data?.users ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {membersSearchQuery.data.users.map((member: Member) => (
+                          <tr key={member.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.email}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.name || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(member.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Search for members</p>
+                )}
+              </div>
+            )}
+
+            {/* Statistics Tab */}
+            {activeTab === 'stats' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Monthly Statistics</h2>
+                <div className="mb-4">
+                  <input
+                    type="month"
+                    value={`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`}
+                    onChange={(e) => {
+                      const [year, month] = e.target.value.split('-');
+                      setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1));
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                {statsQuery.isLoading ? (
+                  <p>Loading...</p>
+                ) : statsQuery.data ? (
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded">
+                      <p className="text-gray-600 text-sm">Total Amount</p>
+                      <p className="text-2xl font-bold text-blue-600">${statsQuery.data.totalAmount}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded">
+                      <p className="text-gray-600 text-sm">Total Bags</p>
+                      <p className="text-2xl font-bold text-green-600">{statsQuery.data.totalBags}</p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

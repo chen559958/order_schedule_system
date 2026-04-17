@@ -1,4 +1,4 @@
-import { publicProcedure, router } from '../trpc.js';
+import { router, publicProcedure } from '../trpc.js';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 
@@ -9,8 +9,8 @@ export const schedulesRouter = router({
   create: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
-        orderId: z.number(),
+        userId: z.string(),
+        orderId: z.string(),
         scheduleDate: z.string(),
         deliveryTime: z.string().optional(),
         deliveryType: z.string(),
@@ -58,9 +58,9 @@ export const schedulesRouter = router({
 
     // 按配送類型分組
     const grouped = {
-      'door-to-door-pickup': schedules.filter(s => s.deliveryType === 'door-to-door-pickup'),
-      'door-to-door-return': schedules.filter(s => s.deliveryType === 'door-to-door-return'),
-      'self-delivery': schedules.filter(s => s.deliveryType === 'self-delivery'),
+      'door-to-door-pickup': schedules.filter((s: any) => s.deliveryType === 'door-to-door-pickup'),
+      'door-to-door-return': schedules.filter((s: any) => s.deliveryType === 'door-to-door-return'),
+      'self-delivery': schedules.filter((s: any) => s.deliveryType === 'self-delivery'),
     };
 
     return grouped;
@@ -94,7 +94,7 @@ export const schedulesRouter = router({
 
   // 獲取用戶的排程
   getByUser: publicProcedure
-    .input(z.object({ userId: z.number() }))
+    .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const schedules = await prisma.schedule.findMany({
         where: { userId: input.userId },
@@ -112,7 +112,7 @@ export const schedulesRouter = router({
   updateTime: publicProcedure
     .input(
       z.object({
-        id: z.number(),
+        id: z.string(),
         scheduleDate: z.string().optional(),
         deliveryTime: z.string().optional(),
       })
@@ -140,7 +140,7 @@ export const schedulesRouter = router({
 
   // 標記排程為已完成
   markCompleted: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const schedule = await prisma.schedule.update({
         where: { id: input.id },
@@ -156,7 +156,7 @@ export const schedulesRouter = router({
 
   // 標記排程為未完成
   markIncomplete: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const schedule = await prisma.schedule.update({
         where: { id: input.id },
@@ -172,7 +172,7 @@ export const schedulesRouter = router({
 
   // 獲取排程詳情
   getById: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const schedule = await prisma.schedule.findUnique({
         where: { id: input.id },

@@ -1,4 +1,4 @@
-import { publicProcedure, router } from '../trpc.js';
+import { router, publicProcedure } from '../trpc.js';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 
@@ -95,7 +95,7 @@ export const membersRouter = router({
 
   // 獲取會員詳情
   getById: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const user = await prisma.user.findUnique({
         where: { id: input.id },
@@ -118,7 +118,7 @@ export const membersRouter = router({
   update: publicProcedure
     .input(
       z.object({
-        id: z.number(),
+        id: z.string(),
         name: z.string().optional(),
         email: z.string().email().optional(),
       })

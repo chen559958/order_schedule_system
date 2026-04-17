@@ -27,112 +27,89 @@ export function Auth({ onLoginSuccess }: AuthProps) {
         localStorage.setItem('user', JSON.stringify(result))
         if (onLoginSuccess) {
           onLoginSuccess(result)
-        } else {
-          window.location.href = result.role === 'ADMIN' ? '/admin' : '/dashboard'
         }
       } else {
         const result = await registerMutation.mutateAsync({ email, password, name })
         localStorage.setItem('user', JSON.stringify(result))
         if (onLoginSuccess) {
           onLoginSuccess(result)
-        } else {
-          window.location.href = '/dashboard'
         }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '發生錯誤')
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h1>{isLogin ? '登入' : '註冊'}</h1>
-      
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            Email:
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            />
-          </label>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            {isLogin ? 'Sign in' : 'Create account'}
+          </h2>
         </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            密碼:
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            />
-          </label>
-        </div>
-
-        {!isLogin && (
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              姓名:
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="text-sm text-red-700">{error}</div>
+            </div>
+          )}
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
               <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-            </label>
+            </div>
+            {!isLogin && (
+              <div>
+                <input
+                  type="text"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            )}
+            <div>
+              <input
+                type="password"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
           </div>
-        )}
 
-        {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {loading ? 'Loading...' : isLogin ? 'Sign in' : 'Create account'}
+            </button>
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          {loading ? '處理中...' : isLogin ? '登入' : '註冊'}
-        </button>
-      </form>
-
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button
-          onClick={() => {
-            setIsLogin(!isLogin)
-            setError('')
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#007bff',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
-          {isLogin ? '尚未有帳號？點此註冊' : '已有帳號？點此登入'}
-        </button>
-      </div>
-
-      <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-        <h3>測試帳號:</h3>
-        <p>管理員: admin@test.com / admin123</p>
-        <p>客戶: user@test.com / user123</p>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-blue-600 hover:text-blue-500"
+            >
+              {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

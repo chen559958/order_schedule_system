@@ -17,20 +17,20 @@ const trpcClient = trpc.createClient({
 
 function App() {
   const [currentPage, setCurrentPage] = useState<'auth' | 'customer' | 'admin'>('auth')
-  const [user, setUser] = useState<any>(null)
+  const [userData, setUserData] = useState<any>(null)
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser)
+      setUserData(parsedUser)
       setCurrentPage(parsedUser.role === 'ADMIN' ? 'admin' : 'customer')
     }
   }, [])
 
-  const handleLoginSuccess = (userData: any) => {
-    setUser(userData)
-    setCurrentPage(userData.role === 'ADMIN' ? 'admin' : 'customer')
+  const handleLoginSuccess = (user: any) => {
+    setUserData(user)
+    setCurrentPage(user.role === 'ADMIN' ? 'admin' : 'customer')
   }
 
   return (

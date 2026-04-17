@@ -1,4 +1,4 @@
-import { publicProcedure, router } from '../trpc.js';
+import { router, publicProcedure } from '../trpc.js';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 
@@ -25,20 +25,18 @@ export const authRouter = router({
     }),
 
   register: publicProcedure
-    .input(
-      z.object({
-        email: z.string().email(),
-        password: z.string().min(6),
-        name: z.string(),
-      })
-    )
+    .input(z.object({ 
+      email: z.string().email(), 
+      password: z.string().min(6),
+      name: z.string().optional(),
+    }))
     .mutation(async ({ input }) => {
-      const existing = await prisma.user.findUnique({
+      const existingUser = await prisma.user.findUnique({
         where: { email: input.email },
       });
 
-      if (existing) {
-        throw new Error('Email already exists');
+      if (existingUser) {
+        throw new Error('User already exists');
       }
 
       const user = await prisma.user.create({
@@ -58,7 +56,9 @@ export const authRouter = router({
       };
     }),
 
-  getMe: publicProcedure.query(async () => {
-    return null;
-  }),
+  me: publicProcedure
+    .query(async () => {
+      // 在實際應用中，這應該從 context 中獲取當前用戶
+      return null;
+    }),
 });

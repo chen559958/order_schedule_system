@@ -2,10 +2,22 @@ import { useState, useEffect } from 'react';
 import { trpc } from '../lib/trpc';
 
 interface User {
-  id: number;
+  id: string;
   email: string;
   name: string;
   role: string;
+}
+
+interface Order {
+  id: string;
+  userId: string;
+  orderDate: string;
+  bags: number;
+  amount: number;
+  deliveryMethod: string;
+  paymentMethod: string;
+  status: string;
+  notes?: string;
 }
 
 export function CustomerDashboard() {
@@ -49,205 +61,155 @@ export function CustomerDashboard() {
     e.preventDefault();
     if (!user) return;
 
-    try {
-      await createOrderMutation.mutateAsync({
-        userId: user.id,
-        ...formData,
-      });
-    } catch (error) {
-      console.error('Failed to create order:', error);
-    }
+    await createOrderMutation.mutateAsync({
+      userId: user.id,
+      bags: formData.bags,
+      amount: formData.amount,
+      deliveryMethod: formData.deliveryMethod,
+      paymentMethod: formData.paymentMethod,
+      notes: formData.notes,
+    });
   };
 
   if (!user) {
-    return <div style={{ padding: '20px' }}>載入中...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '30px' }}>
-        <h1>客戶儀表板</h1>
-        <p>歡迎, {user.name}!</p>
+    <div className="min-h-screen bg-gray-100">
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+          <p className="text-gray-600 mt-2">Welcome, {user.name || user.email}</p>
+        </div>
       </div>
 
-      <div style={{ marginBottom: '30px' }}>
-        <button
-          onClick={() => setShowOrderForm(!showOrderForm)}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '16px',
-          }}
-        >
-          {showOrderForm ? '取消' : '新增訂單'}
-        </button>
-      </div>
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <button
+            onClick={() => setShowOrderForm(!showOrderForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            {showOrderForm ? 'Cancel' : 'Create New Order'}
+          </button>
+        </div>
 
-      {showOrderForm && (
-        <div
-          style={{
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '20px',
-            marginBottom: '30px',
-            backgroundColor: '#f9f9f9',
-          }}
-        >
-          <h2>新增訂單</h2>
-          <form onSubmit={handleCreateOrder}>
-            <div style={{ marginBottom: '15px' }}>
-              <label>
-                袋數:
+        {showOrderForm && (
+          <div className="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Create New Order</h2>
+            <form onSubmit={handleCreateOrder} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Number of Bags</label>
                 <input
                   type="number"
                   min="1"
                   value={formData.bags}
-                  onChange={(e) =>
-                    setFormData({ ...formData, bags: parseInt(e.target.value) })
-                  }
-                  required
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  onChange={(e) => setFormData({ ...formData, bags: parseInt(e.target.value) })}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
-              </label>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label>
-                金額:
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Amount ($)</label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: parseFloat(e.target.value) })
-                  }
-                  required
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
-              </label>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label>
-                配送方式:
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Delivery Method</label>
                 <select
                   value={formData.deliveryMethod}
-                  onChange={(e) =>
-                    setFormData({ ...formData, deliveryMethod: e.target.value })
-                  }
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  onChange={(e) => setFormData({ ...formData, deliveryMethod: e.target.value })}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="door-to-door-pickup">上門取件</option>
-                  <option value="door-to-door-return">上門送回</option>
-                  <option value="self-delivery">自行送達</option>
+                  <option value="door-to-door-pickup">Door-to-Door Pickup</option>
+                  <option value="door-to-door-return">Door-to-Door Return</option>
+                  <option value="self-delivery">Self Delivery</option>
                 </select>
-              </label>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label>
-                付款方式:
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Payment Method</label>
                 <select
                   value={formData.paymentMethod}
-                  onChange={(e) =>
-                    setFormData({ ...formData, paymentMethod: e.target.value })
-                  }
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="cash">現金</option>
-                  <option value="credit-card">信用卡</option>
-                  <option value="mobile-payment">行動支付</option>
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="bank-transfer">Bank Transfer</option>
                 </select>
-              </label>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label>
-                備註:
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Notes</label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  style={{ width: '100%', padding: '8px', marginTop: '5px', minHeight: '80px' }}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  rows={3}
                 />
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={createOrderMutation.isPending}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              {createOrderMutation.isPending ? '提交中...' : '提交訂單'}
-            </button>
-          </form>
-        </div>
-      )}
-
-      <div>
-        <h2>我的訂單</h2>
-        {ordersQuery.isLoading ? (
-          <p>載入中...</p>
-        ) : ordersQuery.data?.orders.length === 0 ? (
-          <p>尚無訂單</p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={{ padding: '10px', textAlign: 'left' }}>訂單日期</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>袋數</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>金額</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>配送方式</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>狀態</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordersQuery.data?.orders.map((order) => (
-                <tr key={order.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '10px' }}>
-                    {new Date(order.orderDate).toLocaleDateString('zh-TW')}
-                  </td>
-                  <td style={{ padding: '10px' }}>{order.bags}</td>
-                  <td style={{ padding: '10px' }}>${order.amount.toFixed(2)}</td>
-                  <td style={{ padding: '10px' }}>{order.deliveryMethod}</td>
-                  <td style={{ padding: '10px' }}>{order.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </div>
+              <button
+                type="submit"
+                disabled={createOrderMutation.isPending}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {createOrderMutation.isPending ? 'Creating...' : 'Create Order'}
+              </button>
+            </form>
+          </div>
         )}
-      </div>
 
-      <div style={{ marginTop: '30px' }}>
-        <button
-          onClick={() => {
-            localStorage.removeItem('user');
-            window.location.href = '/';
-          }}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          登出
-        </button>
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold">Your Orders</h2>
+          </div>
+          {ordersQuery.isLoading ? (
+            <div className="p-6">Loading...</div>
+          ) : ordersQuery.data?.orders && ordersQuery.data.orders.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bags</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {ordersQuery.data.orders.map((order: Order) => (
+                    <tr key={order.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(order.orderDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.bags}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${order.amount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.deliveryMethod}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            order.status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500">No orders yet. Create your first order!</div>
+          )}
+        </div>
       </div>
     </div>
   );

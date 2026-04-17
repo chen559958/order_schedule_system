@@ -1,4 +1,4 @@
-import { publicProcedure, router } from '../trpc.js';
+import { router, publicProcedure } from '../trpc.js';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 
@@ -9,9 +9,9 @@ export const ordersRouter = router({
   create: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
-        bags: z.number().min(1),
-        amount: z.number().min(0),
+        userId: z.string(),
+        bags: z.number(),
+        amount: z.number(),
         deliveryMethod: z.string(),
         paymentMethod: z.string(),
         notes: z.string().optional(),
@@ -25,50 +25,46 @@ export const ordersRouter = router({
           amount: input.amount,
           deliveryMethod: input.deliveryMethod,
           paymentMethod: input.paymentMethod,
-          notes: input.notes || '',
+          notes: input.notes,
+          orderDate: new Date(),
           status: 'pending',
         },
-        include: {
-          user: true,
-        },
+        include: { user: true },
       });
-
       return order;
     }),
 
-  // 獲取用戶的訂單列表
+  // 獲取用戶訂單列表
   listByUser: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
+        userId: z.string(),
         page: z.number().default(1),
         limit: z.number().default(10),
+        status: z.string().optional(),
       })
     )
     .query(async ({ input }) => {
-      const skip = (input.page - 1) * input.limit;
+      const where: any = { userId: input.userId };
+      if (input.status) {
+        where.status = input.status;
+      }
 
       const [orders, total] = await Promise.all([
         prisma.order.findMany({
-          where: { userId: input.userId },
+          where,
           include: { user: true, schedules: true },
           orderBy: { orderDate: 'desc' },
-          skip,
+          skip: (input.page - 1) * input.limit,
           take: input.limit,
         }),
-        prisma.order.count({ where: { userId: input.userId } }),
+        prisma.order.count({ where }),
       ]);
 
-      return {
-        orders,
-        total,
-        page: input.page,
-        limit: input.limit,
-        pages: Math.ceil(total / input.limit),
-      };
+      return { orders, total, page: input.page, limit: input.limit };
     }),
 
-  // 獲取所有訂單（管理員）
+  // 獲取所有訂單
   listAll: publicProcedure
     .input(
       z.object({
@@ -78,63 +74,36 @@ export const ordersRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const skip = (input.page - 1) * input.limit;
-      const where = input.status ? { status: input.status } : {};
+      const where: any = {};
+      if (input.status) {
+        where.status = input.status;
+      }
 
       const [orders, total] = await Promise.all([
         prisma.order.findMany({
           where,
           include: { user: true, schedules: true },
           orderBy: { orderDate: 'desc' },
-          skip,
+          skip: (input.page - 1) * input.limit,
           take: input.limit,
         }),
         prisma.order.count({ where }),
       ]);
 
-      return {
-        orders,
-        total,
-        page: input.page,
-        limit: input.limit,
-        pages: Math.ceil(total / input.limit),
-      };
+      return { orders, total, page: input.page, limit: input.limit };
     }),
 
   // 獲取訂單詳情
   getById: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
-      const order = await prisma.order.findUnique({
+      return prisma.order.findUnique({
         where: { id: input.id },
-        include: {
-          user: true,
-          schedules: true,
-        },
-      });
-
-      return order;
-    }),
-
-  // 更新訂單狀態
-  updateStatus: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        status: z.string(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const order = await prisma.order.update({
-        where: { id: input.id },
-        data: { status: input.status },
         include: { user: true, schedules: true },
       });
-
-      return order;
     }),
 
-  // 獲取月度統計
+  // 月度統計
   getMonthlyStats: publicProcedure
     .input(
       z.object({
@@ -190,7 +159,6 @@ export const ordersRouter = router({
         totalBags,
         page: input.page,
         limit: input.limit,
-        pages: Math.ceil(total / input.limit),
       };
     }),
 });
