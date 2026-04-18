@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -42,6 +43,12 @@ export default function StaffSchedule() {
       </div>
     );
   }
+
+  const completeScheduleMutation = trpc.schedule.markCompleted.useMutation({
+    onSuccess: () => {
+      // 重新獲取排程
+    },
+  });
 
   const scheduleData = schedules
     ?.map((schedule) => {
@@ -127,6 +134,22 @@ export default function StaffSchedule() {
                       <p className="text-gray-100">{schedule.order.notes}</p>
                     </div>
                   )}
+
+                  <div className="pt-4 border-t border-gray-800 flex gap-2">
+                    <Button
+                      onClick={() => {
+                        completeScheduleMutation.mutate({ scheduleId: schedule.id });
+                        // 重新獲取排程
+                        setTimeout(() => {
+                          window.location.reload();
+                        }, 500);
+                      }}
+                      disabled={completeScheduleMutation.isPending}
+                      className="flex-1 bg-green-600 text-white hover:bg-green-700"
+                    >
+                      {completeScheduleMutation.isPending ? "標記中..." : "標記完成"}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
