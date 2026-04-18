@@ -20,7 +20,7 @@ export const ordersRouter = router({
     .mutation(async ({ input }) => {
       const order = await prisma.order.create({
         data: {
-          userId: input.userId,
+          userId: parseInt(input.userId),
           bags: input.bags,
           amount: input.amount,
           deliveryMethod: input.deliveryMethod,
@@ -98,7 +98,7 @@ export const ordersRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       return prisma.order.findUnique({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         include: { user: true, schedules: true },
       });
     }),

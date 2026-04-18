@@ -19,8 +19,8 @@ export const schedulesRouter = router({
     .mutation(async ({ input }) => {
       const schedule = await prisma.schedule.create({
         data: {
-          userId: input.userId,
-          orderId: input.orderId,
+          userId: parseInt(input.userId),
+          orderId: parseInt(input.orderId),
           scheduleDate: new Date(input.scheduleDate),
           deliveryTime: input.deliveryTime || '',
           deliveryType: input.deliveryType,
@@ -97,7 +97,7 @@ export const schedulesRouter = router({
     .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const schedules = await prisma.schedule.findMany({
-        where: { userId: input.userId },
+        where: { userId: parseInt(input.userId) },
         include: {
           user: true,
           order: true,
@@ -127,7 +127,7 @@ export const schedulesRouter = router({
       }
 
       const schedule = await prisma.schedule.update({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         data,
         include: {
           user: true,
@@ -143,7 +143,7 @@ export const schedulesRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const schedule = await prisma.schedule.update({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         data: { isCompleted: true },
         include: {
           user: true,
@@ -159,7 +159,7 @@ export const schedulesRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       const schedule = await prisma.schedule.update({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         data: { isCompleted: false },
         include: {
           user: true,
@@ -175,7 +175,7 @@ export const schedulesRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const schedule = await prisma.schedule.findUnique({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         include: {
           user: true,
           order: true,

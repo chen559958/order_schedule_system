@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { trpc } from '../lib/trpc';
+import { api } from '../lib/api';
 
 interface User {
   id: string;
@@ -8,72 +8,64 @@ interface User {
   role: string;
 }
 
-interface Schedule {
-  id: string;
-  userId: string;
-  orderId: string;
-  scheduleDate: string;
-  deliveryTime?: string;
-  deliveryType: string;
-  isCompleted: boolean;
-}
-
-interface Member {
-  id: string;
-  email: string;
-  name?: string;
-  createdAt: string;
-}
-
-interface Order {
-  id: string;
-  userId: string;
-  orderDate: string;
-  bags: number;
-  amount: number;
-  deliveryMethod: string;
-  paymentMethod: string;
-  status: string;
-}
-
 export function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'today' | 'members' | 'stats'>('today');
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
-      if (parsedUser.role !== 'ADMIN') {
-        window.location.href = '/';
-      }
       setUser(parsedUser);
+      loadTodaySchedules();
+      loadMonthlyStats();
     }
   }, []);
 
-  // 今日排程
-  const todaySchedulesQuery = trpc.schedules.getTodaySchedules.useQuery(undefined, {
-    enabled: activeTab === 'today',
-  });
+  const loadTodaySchedules = async () => {
+    try {
+      setLoading(true);
+      const data = await api.schedules.getTodaySchedules();
+      setSchedules(data || []);
+    } catch (err) {
+      console.error('Failed to load schedules:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // 會員搜尋
-  const membersSearchQuery = trpc.members.search.useQuery(
-    { query: searchQuery, page: 1, limit: 20 },
-    { enabled: activeTab === 'members' && searchQuery.length > 0 }
-  );
+  const loadMonthlyStats = async () => {
+    try {
+      const data = await api.orders.getMonthlyStats(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+      setStats(data);
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
+  };
 
-  // 月度統計
-  const statsQuery = trpc.orders.getMonthlyStats.useQuery(
-    {
-      year: currentMonth.getFullYear(),
-      month: currentMonth.getMonth() + 1,
-      page: 1,
-      limit: 20,
-    },
-    { enabled: activeTab === 'stats' }
-  );
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    try {
+      setLoading(true);
+      const data = await api.members.search(searchQuery);
+      setMembers(data.users || []);
+    } catch (err) {
+      console.error('Failed to search members:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    window.location.reload();
+  };
 
   if (!user) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -82,157 +74,202 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+          >
+            Logout
+          </button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px" aria-label="Tabs">
-              <button
-                onClick={() => setActiveTab('today')}
-                className={`py-4 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'today'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Today's Schedule
-              </button>
-              <button
-                onClick={() => setActiveTab('members')}
-                className={`py-4 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'members'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Members
-              </button>
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`py-4 px-6 border-b-2 font-medium text-sm ${
-                  activeTab === 'stats'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Statistics
-              </button>
-            </nav>
-          </div>
+        <div className="flex space-x-4 mb-6">
+          <button
+            onClick={() => setActiveTab('today')}
+            className={`px-4 py-2 rounded-md ${
+              activeTab === 'today'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-900 border border-gray-300'
+            }`}
+          >
+            Today's Schedule
+          </button>
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-4 py-2 rounded-md ${
+              activeTab === 'members'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-900 border border-gray-300'
+            }`}
+          >
+            Members
+          </button>
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`px-4 py-2 rounded-md ${
+              activeTab === 'stats'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-900 border border-gray-300'
+            }`}
+          >
+            Monthly Stats
+          </button>
+        </div>
 
-          <div className="p-6">
-            {/* Today's Schedule Tab */}
-            {activeTab === 'today' && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Today's Schedule</h2>
-                {todaySchedulesQuery.isLoading ? (
-                  <p>Loading...</p>
-                ) : todaySchedulesQuery.data ? (
-                  <div className="space-y-4">
-                    {Object.entries(todaySchedulesQuery.data).map(([type, schedules]: [string, any]) => (
-                      <div key={type}>
-                        <h3 className="font-semibold text-gray-700 mb-2">{type}</h3>
-                        {schedules.length > 0 ? (
-                          <ul className="space-y-2">
-                            {schedules.map((schedule: Schedule) => (
-                              <li key={schedule.id} className="bg-gray-50 p-3 rounded">
-                                <p className="text-sm text-gray-600">
-                                  {schedule.user?.name || 'Unknown'} - {schedule.deliveryTime || 'No time set'}
-                                </p>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500 text-sm">No schedules</p>
-                        )}
-                      </div>
-                    ))}
+        {activeTab === 'today' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Today's Schedules</h2>
+            {loading ? (
+              <div>Loading...</div>
+            ) : schedules && schedules.length > 0 ? (
+              <div className="space-y-4">
+                {schedules.map((schedule: any) => (
+                  <div key={schedule.id} className="border border-gray-200 rounded-lg p-4">
+                    <p className="font-semibold">{schedule.user?.name || 'Unknown'}</p>
+                    <p className="text-sm text-gray-600">Time: {schedule.deliveryTime || 'Not set'}</p>
+                    <p className="text-sm text-gray-600">Type: {schedule.deliveryType}</p>
                   </div>
-                ) : (
-                  <p>No data</p>
-                )}
+                ))}
               </div>
+            ) : (
+              <p className="text-gray-500">No schedules for today</p>
             )}
+          </div>
+        )}
 
-            {/* Members Tab */}
-            {activeTab === 'members' && (
+        {activeTab === 'members' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Search Members</h2>
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+            {members && members.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {members.map((member: any) => (
+                      <tr key={member.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.name || '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(member.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500">No members found</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Monthly Statistics</h2>
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={() => {
+                  const prev = new Date(currentMonth);
+                  prev.setMonth(prev.getMonth() - 1);
+                  setCurrentMonth(prev);
+                  loadMonthlyStats();
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md"
+              >
+                ← Previous
+              </button>
+              <span className="px-3 py-1">
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </span>
+              <button
+                onClick={() => {
+                  const next = new Date(currentMonth);
+                  next.setMonth(next.getMonth() + 1);
+                  setCurrentMonth(next);
+                  loadMonthlyStats();
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md"
+              >
+                Next →
+              </button>
+            </div>
+            {stats ? (
               <div>
-                <h2 className="text-xl font-semibold mb-4">Search Members</h2>
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
-                />
-                {membersSearchQuery.isLoading ? (
-                  <p>Loading...</p>
-                ) : membersSearchQuery.data?.users ? (
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Total Orders</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.totalOrders || 0}</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                    <p className="text-2xl font-bold text-green-600">${stats.totalAmount?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Total Bags</p>
+                    <p className="text-2xl font-bold text-purple-600">{stats.totalBags || 0}</p>
+                  </div>
+                </div>
+                {stats.orders && stats.orders.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bags</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {membersSearchQuery.data.users.map((member: Member) => (
-                          <tr key={member.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.email}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.name || '-'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(member.createdAt).toLocaleDateString()}
+                        {stats.orders.map((order: any) => (
+                          <tr key={order.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(order.orderDate).toLocaleDateString()}
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {order.user?.name || 'Unknown'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.bags}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${order.amount}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="text-gray-500">Search for members</p>
+                  <p className="text-gray-500">No orders this month</p>
                 )}
               </div>
-            )}
-
-            {/* Statistics Tab */}
-            {activeTab === 'stats' && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Monthly Statistics</h2>
-                <div className="mb-4">
-                  <input
-                    type="month"
-                    value={`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`}
-                    onChange={(e) => {
-                      const [year, month] = e.target.value.split('-');
-                      setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1));
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                {statsQuery.isLoading ? (
-                  <p>Loading...</p>
-                ) : statsQuery.data ? (
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-blue-50 p-4 rounded">
-                      <p className="text-gray-600 text-sm">Total Amount</p>
-                      <p className="text-2xl font-bold text-blue-600">${statsQuery.data.totalAmount}</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded">
-                      <p className="text-gray-600 text-sm">Total Bags</p>
-                      <p className="text-2xl font-bold text-green-600">{statsQuery.data.totalBags}</p>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+            ) : (
+              <p className="text-gray-500">Loading statistics...</p>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

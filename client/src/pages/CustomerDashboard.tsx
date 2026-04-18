@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { trpc } from '../lib/trpc';
+import { api } from '../lib/api';
 
 interface User {
   id: string;
@@ -8,21 +8,11 @@ interface User {
   role: string;
 }
 
-interface Order {
-  id: string;
-  userId: string;
-  orderDate: string;
-  bags: number;
-  amount: number;
-  deliveryMethod: string;
-  paymentMethod: string;
-  status: string;
-  notes?: string;
-}
-
 export function CustomerDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     bags: 1,
     amount: 0,
@@ -34,17 +24,38 @@ export function CustomerDashboard() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      loadOrders(parsedUser.id);
     }
   }, []);
 
-  const ordersQuery = trpc.orders.listByUser.useQuery(
-    user ? { userId: user.id, page: 1, limit: 10 } : undefined,
-    { enabled: !!user }
-  );
+  const loadOrders = async (userId: string) => {
+    try {
+      setLoading(true);
+      const data = await api.orders.listByUser(userId);
+      setOrders(data.orders || []);
+    } catch (err) {
+      console.error('Failed to load orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const createOrderMutation = trpc.orders.create.useMutation({
-    onSuccess: () => {
+  const handleCreateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      await api.orders.create(
+        user.id,
+        formData.bags,
+        formData.amount,
+        formData.deliveryMethod,
+        formData.paymentMethod,
+        formData.notes
+      );
       setShowOrderForm(false);
       setFormData({
         bags: 1,
@@ -53,22 +64,12 @@ export function CustomerDashboard() {
         paymentMethod: 'cash',
         notes: '',
       });
-      ordersQuery.refetch();
-    },
-  });
-
-  const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    await createOrderMutation.mutateAsync({
-      userId: user.id,
-      bags: formData.bags,
-      amount: formData.amount,
-      deliveryMethod: formData.deliveryMethod,
-      paymentMethod: formData.paymentMethod,
-      notes: formData.notes,
-    });
+      loadOrders(user.id);
+    } catch (err) {
+      console.error('Failed to create order:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) {
@@ -154,10 +155,10 @@ export function CustomerDashboard() {
               </div>
               <button
                 type="submit"
-                disabled={createOrderMutation.isPending}
+                disabled={loading}
                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {createOrderMutation.isPending ? 'Creating...' : 'Create Order'}
+                {loading ? 'Creating...' : 'Create Order'}
               </button>
             </form>
           </div>
@@ -167,9 +168,9 @@ export function CustomerDashboard() {
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold">Your Orders</h2>
           </div>
-          {ordersQuery.isLoading ? (
+          {loading ? (
             <div className="p-6">Loading...</div>
-          ) : ordersQuery.data?.orders && ordersQuery.data.orders.length > 0 ? (
+          ) : orders && orders.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -182,7 +183,7 @@ export function CustomerDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {ordersQuery.data.orders.map((order: Order) => (
+                  {orders.map((order: any) => (
                     <tr key={order.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(order.orderDate).toLocaleDateString()}

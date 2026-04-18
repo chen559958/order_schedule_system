@@ -98,7 +98,7 @@ export const membersRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       const user = await prisma.user.findUnique({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         include: {
           orders: {
             orderBy: { orderDate: 'desc' },
@@ -129,7 +129,7 @@ export const membersRouter = router({
       if (input.email) data.email = input.email;
 
       const user = await prisma.user.update({
-        where: { id: input.id },
+        where: { id: parseInt(input.id) },
         data,
       });
 

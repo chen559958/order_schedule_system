@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { trpc } from '../lib/trpc'
+import { api } from '../lib/api'
 
 interface AuthProps {
   onLoginSuccess?: (user: any) => void;
@@ -13,27 +13,21 @@ export function Auth({ onLoginSuccess }: AuthProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const loginMutation = trpc.auth.login.useMutation()
-  const registerMutation = trpc.auth.register.useMutation()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
+      let result
       if (isLogin) {
-        const result = await loginMutation.mutateAsync({ email, password })
-        localStorage.setItem('user', JSON.stringify(result))
-        if (onLoginSuccess) {
-          onLoginSuccess(result)
-        }
+        result = await api.auth.login(email, password)
       } else {
-        const result = await registerMutation.mutateAsync({ email, password, name })
-        localStorage.setItem('user', JSON.stringify(result))
-        if (onLoginSuccess) {
-          onLoginSuccess(result)
-        }
+        result = await api.auth.register(email, password, name)
+      }
+      localStorage.setItem('user', JSON.stringify(result))
+      if (onLoginSuccess) {
+        onLoginSuccess(result)
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed')
