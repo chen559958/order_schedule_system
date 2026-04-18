@@ -1,84 +1,55 @@
-import { getLoginUrl } from "@/const";
-import { trpc } from "@/lib/trpc";
-import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 
-type UseAuthOptions = {
-  redirectOnUnauthenticated?: boolean;
-  redirectPath?: string;
-};
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  role: "admin" | "staff" | "user";
+  token?: string;
+}
 
-export function useAuth(options?: UseAuthOptions) {
-  const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
-    options ?? {};
-  const utils = trpc.useUtils();
-
-  const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
-    },
-  });
-
-  const logout = useCallback(async () => {
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        return;
-      }
-      throw error;
-    } finally {
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
-    }
-  }, [logoutMutation, utils]);
-
-  const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
-    return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
-      error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
-    };
-  }, [
-    meQuery.data,
-    meQuery.error,
-    meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
-  ]);
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
-    if (state.user) return;
-    if (typeof window === "undefined") return;
-    if (window.location.pathname === redirectPath) return;
+    // 從 localStorage 讀取用戶信息
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        setUser(userData);
+      } catch (err) {
+        setError(err as Error);
+        localStorage.removeItem("user");
+      }
+    }
+    setLoading(false);
+  }, []);
 
-    window.location.href = redirectPath
-  }, [
-    redirectOnUnauthenticated,
-    redirectPath,
-    logoutMutation.isPending,
-    meQuery.isLoading,
-    state.user,
-  ]);
+  const logout = async () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    setUser(null);
+  };
 
   return {
-    ...state,
-    refresh: () => meQuery.refetch(),
+    user,
+    loading,
+    error,
+    isAuthenticated: !!user,
     logout,
+    refresh: () => {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          setUser(userData);
+        } catch (err) {
+          setError(err as Error);
+        }
+      }
+    }
   };
 }

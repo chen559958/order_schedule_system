@@ -1,177 +1,321 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { trpc } from "@/lib/trpc";
-import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getLoginUrl } from "@/const";
 
 export default function AuthPage() {
-  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { data: profile, isLoading: isLoadingProfile } = trpc.customer.getProfile.useQuery(
-    undefined,
-    { enabled: !!user }
-  );
-  const updateProfileMutation = trpc.customer.updateProfile.useMutation();
-
-  // If user is logged in and has completed profile, redirect to home
-  useEffect(() => {
-    if (user && profile && profile.fullName && profile.address && profile.phone) {
-      setLocation("/");
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      toast.error("請輸入帳號和密碼");
+      return;
     }
-  }, [user, profile, setLocation]);
 
-  // If user is not logged in, show login page
-  if (!user && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-3xl font-black text-gray-100">登入系統</CardTitle>
-              <CardDescription className="text-gray-400">
-                使用 Manus 帳號登入
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => window.location.href = getLoginUrl()}
-                className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
-              >
-                使用 Manus 登入
-              </Button>
-              <p className="text-gray-400 text-sm text-center mt-4">
-                首次登入後，系統將引導您填寫個人資訊
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/trpc/auth.login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { email, password }
+        })
+      });
 
-  // If loading, show loading state
-  if (loading || isLoadingProfile) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400">載入中...</div>
-      </div>
-    );
-  }
-
-  // If user is logged in but hasn't completed profile, show profile completion form
-  if (user && (!profile || !profile.fullName || !profile.address || !profile.phone)) {
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!fullName.trim() || !address.trim() || !phone.trim()) {
-        toast.error("請填寫所有欄位");
-        return;
+      const data = await response.json();
+      
+      if (data.result?.data) {
+        const user = data.result.data;
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("token", user.token || "");
+        
+        toast.success("登入成功！");
+        
+        // 根據身份分流
+        if (user.role === "admin") {
+          setLocation("/admin/dashboard");
+        } else if (user.role === "staff") {
+          setLocation("/staff/schedule");
+        } else {
+          setLocation("/place-order");
+        }
+      } else {
+        toast.error(data.result?.error?.message || "登入失敗");
       }
+    } catch (error) {
+      toast.error("登入失敗，請稍後重試");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      setIsSubmitting(true);
-      try {
-        await updateProfileMutation.mutateAsync({
-          fullName,
-          address,
-          phone,
-        });
-        toast.success("個人資訊已保存！");
-        setLocation("/");
-      } catch (error) {
-        toast.error("保存失敗，請稍後重試");
-      } finally {
-        setIsSubmitting(false);
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim() || !confirmPassword.trim() || !fullName.trim()) {
+      toast.error("請填寫所有欄位");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("密碼不相符");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/trpc/auth.register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { email, password, fullName }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.result?.data) {
+        toast.success("註冊成功！請登入");
+        setMode("login");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setFullName("");
+      } else {
+        toast.error(data.result?.error?.message || "註冊失敗");
       }
-    };
+    } catch (error) {
+      toast.error("註冊失敗，請稍後重試");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-3xl font-black text-gray-100">
-                完成個人資訊
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                首次登入需要填寫您的基本資訊
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-gray-300">
-                    姓名 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="請輸入您的姓名"
-                    className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-gray-300">
-                    地址 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="請輸入您的地址"
-                    className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-gray-300">
-                    電話 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="請輸入您的電話號碼"
-                    className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || updateProfileMutation.isPending}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg mt-6"
-                >
-                  {isSubmitting || updateProfileMutation.isPending ? "保存中..." : "完成並繼續"}
-                </Button>
-              </form>
-
-              <p className="text-gray-400 text-xs text-center mt-4">
-                這些資訊將用於訂單配送，您可以稍後在個人資訊頁面修改
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // If user is logged in and has completed profile, redirect to home
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="text-gray-400">重新導向中...</div>
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-black text-gray-100 mb-2">LAUNDRY</h1>
+          <p className="text-gray-400 text-sm">洗衣物流管理系統</p>
+        </div>
+
+        <Card className="bg-gray-900 border-gray-800">
+          {mode === "login" && (
+            <>
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-2xl font-black text-gray-100">登入</CardTitle>
+                <CardDescription className="text-gray-400">
+                  輸入您的帳號和密碼
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-gray-300">
+                      帳號
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="請輸入帳號"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-gray-300">
+                      密碼
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="請輸入密碼"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
+                  >
+                    {isLoading ? "登入中..." : "登入"}
+                  </Button>
+                </form>
+
+                <div className="flex gap-2 text-sm text-gray-400 mt-6 justify-center">
+                  <button
+                    onClick={() => setMode("forgot")}
+                    className="hover:text-gray-300 underline"
+                  >
+                    忘記密碼
+                  </button>
+                  <span>|</span>
+                  <button
+                    onClick={() => setMode("register")}
+                    className="hover:text-gray-300 underline"
+                  >
+                    註冊會員
+                  </button>
+                </div>
+              </CardContent>
+            </>
+          )}
+
+          {mode === "register" && (
+            <>
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-2xl font-black text-gray-100">註冊會員</CardTitle>
+                <CardDescription className="text-gray-400">
+                  建立新帳號
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-gray-300">
+                      姓名
+                    </Label>
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="請輸入姓名"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="registerEmail" className="text-gray-300">
+                      帳號（Email）
+                    </Label>
+                    <Input
+                      id="registerEmail"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="請輸入 Email"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="registerPassword" className="text-gray-300">
+                      密碼 <span className="text-red-400 text-xs ml-1">（至少6個字母）</span>
+                    </Label>
+                    <Input
+                      id="registerPassword"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="請輸入密碼（至少6個字母）"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-gray-300">
+                      確認密碼
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="請再次輸入密碼"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
+                  >
+                    {isLoading ? "註冊中..." : "建立帳號"}
+                  </Button>
+                </form>
+
+                <div className="text-center text-sm text-gray-400 mt-6">
+                  已有帳號？
+                  <button
+                    onClick={() => setMode("login")}
+                    className="hover:text-gray-300 underline ml-1"
+                  >
+                    返回登入
+                  </button>
+                </div>
+              </CardContent>
+            </>
+          )}
+
+          {mode === "forgot" && (
+            <>
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-2xl font-black text-gray-100">忘記密碼</CardTitle>
+                <CardDescription className="text-gray-400">
+                  輸入您的帳號重設密碼
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="forgotEmail" className="text-gray-300">
+                      帳號（Email）
+                    </Label>
+                    <Input
+                      id="forgotEmail"
+                      type="email"
+                      placeholder="請輸入您的 Email"
+                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
+                    />
+                  </div>
+
+                  <Button
+                    disabled={isLoading}
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
+                    onClick={() => {
+                      toast.info("密碼重設連結已發送至您的 Email");
+                      setMode("login");
+                    }}
+                  >
+                    發送重設連結
+                  </Button>
+                </div>
+
+                <div className="text-center text-sm text-gray-400 mt-6">
+                  <button
+                    onClick={() => setMode("login")}
+                    className="hover:text-gray-300 underline"
+                  >
+                    返回登入
+                  </button>
+                </div>
+              </CardContent>
+            </>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

@@ -15,8 +15,16 @@ import {
   updateScheduleDeliveryTime,
   markScheduleAsCompleted,
   getScheduleByOrderId,
+  getDb,
 } from "./db";
 import { TRPCError } from "@trpc/server";
+import crypto from "crypto";
+import { users } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
+
+function hashPassword(password: string) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -29,6 +37,91 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const hashedPassword = hashPassword(input.password);
+        
+        const db = await getDb();
+        if (!db) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Database connection failed',
+          });
+        }
+        
+        const result = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, input.email))
+          .limit(1);
+        
+        if (result.length === 0 || result[0].password !== hashedPassword) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: '帳號或密碼錯誤',
+          });
+        }
+        
+        return {
+          id: result[0].id,
+          email: result[0].email,
+          name: result[0].name,
+          role: result[0].role,
+          token: 'token_' + result[0].id,
+        };
+      }),
+    register: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(6),
+          fullName: z.string().min(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const hashedPassword = hashPassword(input.password);
+        
+        const db = await getDb();
+        if (!db) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Database connection failed',
+          });
+        }
+        
+        const existingUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, input.email))
+          .limit(1);
+        
+        if (existingUser.length > 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '該 Email 已被註冊',
+          });
+        }
+        
+        await db.insert(users).values({
+          email: input.email,
+          password: hashedPassword,
+          name: input.fullName,
+          role: 'user',
+          loginMethod: 'email',
+          openId: 'user_' + Date.now(),
+        });
+        
+        return {
+          success: true,
+          message: '註冊成功，請登入',
+        };
+      }),
   }),
 
   // Customer procedures

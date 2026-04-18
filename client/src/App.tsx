@@ -20,8 +20,24 @@ function Router() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!loading && !user && ["/profile", "/place-order", "/orders", "/admin/dashboard", "/staff/schedule"].includes(location)) {
-      setLocation("/auth");
+    if (!loading) {
+      if (!user) {
+        // 未登入用戶導向登入頁面
+        if (!["/auth", "/404"].includes(location)) {
+          setLocation("/auth");
+        }
+      } else {
+        // 已登入用戶，根據身份分流
+        if (location === "/" || location === "/auth") {
+          if (user.role === "admin") {
+            setLocation("/admin/dashboard");
+          } else if (user.role === "staff") {
+            setLocation("/staff/schedule");
+          } else {
+            setLocation("/place-order");
+          }
+        }
+      }
     }
   }, [user, loading, location, setLocation]);
 
