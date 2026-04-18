@@ -93,7 +93,15 @@ export default function StaffSchedule() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-400 text-sm">客戶姓名</p>
-                      <p className="text-gray-100 font-bold">客戶 #{schedule.order?.customerId || "未知"}</p>
+                      <p className="text-gray-100 font-bold">{schedule.order?.customerName || "未知"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">電話</p>
+                      <p className="text-gray-100 font-bold">{schedule.order?.customerPhone || "未知"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">地址</p>
+                      <p className="text-gray-100 font-bold">{schedule.order?.customerAddress || "未知"}</p>
                     </div>
                     <div>
                       <p className="text-gray-400 text-sm">袋數</p>
