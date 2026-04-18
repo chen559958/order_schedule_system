@@ -6,9 +6,20 @@ import { trpc } from "@/lib/trpc";
 
 export default function AdminCustomers() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // 獲取所有客戶
   const { data: customers = [], isLoading: customersLoading } = trpc.adminCustomer.getAll.useQuery();
+
+  // 搜尋篩選客戶
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery.trim()) return customers;
+    const query = searchQuery.toLowerCase();
+    return customers.filter((customer: any) => 
+      customer.fullName.toLowerCase().includes(query) ||
+      customer.phone.includes(query)
+    );
+  }, [customers, searchQuery]);
 
   // 獲取選定客戶的訂單歷史
   const { data: customerOrderHistory = [] } = trpc.adminCustomer.getOrderHistory.useQuery(
@@ -56,14 +67,22 @@ export default function AdminCustomers() {
               <CardHeader>
                 <CardTitle className="text-white">會員列表</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* 搜尋框 */}
+                <input
+                  type="text"
+                  placeholder="按姓名或電話搜尋..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                />
                 {customersLoading ? (
                   <div className="text-gray-400">載入中...</div>
-                ) : customers.length === 0 ? (
+                ) : filteredCustomers.length === 0 ? (
                   <div className="text-gray-400">暫無會員</div>
                 ) : (
                   <div className="space-y-2">
-                    {customers.map((customer: any) => (
+                    {filteredCustomers.map((customer: any) => (
                       <button
                         key={customer.id}
                         onClick={() => setSelectedCustomerId(customer.id)}
