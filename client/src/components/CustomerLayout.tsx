@@ -42,7 +42,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-1 hover:bg-gray-100 rounded transition"
             >
-              <span className="text-xl">{sidebarOpen ? "←" : "☰"}</span>
+              <span className="text-xl">{sidebarOpen ? "←" : "≡"}</span>
             </button>
           </div>
         </div>
