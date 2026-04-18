@@ -1,120 +1,177 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import CustomerLayout from "@/components/CustomerLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 
 export default function Profile() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { data: profile, isLoading: isLoadingProfile } = trpc.customer.getProfile.useQuery();
-  const updateMutation = trpc.customer.updateProfile.useMutation();
-
+  // 獲取用戶資料
   useEffect(() => {
-    if (profile) {
-      setFullName(profile.fullName);
-      setAddress(profile.address);
-      setPhone(profile.phone);
+    if (user) {
+      setFullName(user.name || "");
+      setAddress(user.address || "");
+      setPhone(user.phone || "");
     }
-  }, [profile]);
+  }, [user]);
+
+  // 更新個人資料 mutation
+  const updateProfileMutation = trpc.customer.updateProfile.useMutation({
+    onSuccess: () => {
+      alert("個人資訊已更新");
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      alert(`更新失敗: ${error.message}`);
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!fullName.trim() || !address.trim() || !phone.trim()) {
-      toast.error("請填寫所有欄位");
+      alert("請填寫所有欄位");
       return;
     }
 
-    setIsLoading(true);
-    try {
-      await updateMutation.mutateAsync({
-        fullName,
-        address,
-        phone,
-      });
-      toast.success("個人資訊已更新");
-    } catch (error) {
-      toast.error("更新失敗，請稍後重試");
-    } finally {
-      setIsLoading(false);
-    }
+    setIsSaving(true);
+    await updateProfileMutation.mutateAsync({
+      fullName,
+      address,
+      phone,
+    });
+    setIsSaving(false);
   };
 
-  if (isLoadingProfile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-400">載入中...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-950 p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
-        <Card className="bg-gray-900 border-gray-800">
+    <CustomerLayout>
+      <div className="space-y-8 max-w-2xl">
+        {/* 頁面標題 */}
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">個人資料</h1>
+          <p className="text-gray-600">查看和修改您的個人資訊</p>
+        </div>
+
+        {/* 個人資料卡片 */}
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="text-2xl font-black text-gray-100">個人資訊</CardTitle>
-            <CardDescription className="text-gray-400">管理您的帳戶資訊</CardDescription>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-gray-900">基本資訊</CardTitle>
+              <Button
+                onClick={() => setIsEditing(!isEditing)}
+                className={`${
+                  isEditing
+                    ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {isEditing ? "取消編輯" : "編輯資料"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-gray-300">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 姓名 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   姓名
-                </Label>
-                <Input
-                  id="name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="請輸入姓名"
-                  className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                />
+                </label>
+                {isEditing ? (
+                  <Input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="請輸入姓名"
+                    className="border-gray-300"
+                  />
+                ) : (
+                  <div className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 font-medium">
+                    {fullName || "未設定"}
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-gray-300">
-                  地址
-                </Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="請輸入地址"
-                  className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-gray-300">
+              {/* 電話 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   電話
-                </Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="請輸入電話"
-                  className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                />
+                </label>
+                {isEditing ? (
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="請輸入電話"
+                    className="border-gray-300"
+                  />
+                ) : (
+                  <div className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 font-medium">
+                    {phone || "未設定"}
+                  </div>
+                )}
               </div>
 
-              <Button
-                type="submit"
-                disabled={isLoading || updateMutation.isPending}
-                className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold"
-              >
-                {isLoading || updateMutation.isPending ? "保存中..." : "保存"}
-              </Button>
+              {/* 地址 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  地址
+                </label>
+                {isEditing ? (
+                  <Input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="請輸入地址"
+                    className="border-gray-300"
+                  />
+                ) : (
+                  <div className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 font-medium">
+                    {address || "未設定"}
+                  </div>
+                )}
+              </div>
+
+              {/* 提交按鈕 */}
+              {isEditing && (
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="submit"
+                    disabled={isSaving || updateProfileMutation.isPending}
+                    className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    {isSaving || updateProfileMutation.isPending ? "保存中..." : "保存修改"}
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
+
+        {/* 帳戶資訊 */}
+        <Card className="bg-white border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-gray-900">帳戶資訊</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">電子郵件</p>
+              <p className="text-gray-900 font-medium">{user?.email}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">帳戶類型</p>
+              <p className="text-gray-900 font-medium">客戶</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </CustomerLayout>
   );
 }

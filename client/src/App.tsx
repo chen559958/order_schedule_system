@@ -8,6 +8,10 @@ import AdminOrders from "@/pages/AdminOrders";
 import AdminCustomers from "@/pages/AdminCustomers";
 import AdminAnalytics from "@/pages/AdminAnalytics";
 import CustomerOrders from "@/pages/CustomerOrders";
+import CustomerHome from "@/pages/CustomerHome";
+import CustomerNewOrder from "@/pages/CustomerNewOrder";
+import CustomerHistory from "@/pages/CustomerHistory";
+import Profile from "@/pages/Profile";
 
 export default function App() {
   const [location, setLocation] = useLocation();
@@ -80,6 +84,30 @@ export default function App() {
           <CustomerOrders />
         </ProtectedRoute>
       )}
+      
+      {location === "/customer/home" && (
+        <ProtectedRoute requiredRole="CUSTOMER">
+          <CustomerHome />
+        </ProtectedRoute>
+      )}
+      
+      {location === "/customer/new-order" && (
+        <ProtectedRoute requiredRole="CUSTOMER">
+          <CustomerNewOrder />
+        </ProtectedRoute>
+      )}
+      
+      {location === "/customer/history" && (
+        <ProtectedRoute requiredRole="CUSTOMER">
+          <CustomerHistory />
+        </ProtectedRoute>
+      )}
+      
+      {location === "/customer/profile" && (
+        <ProtectedRoute requiredRole="CUSTOMER">
+          <Profile />
+        </ProtectedRoute>
+      )}
 
       {/* 未定義的路由 → 根據身份導向 */}
       {location !== "/login" && 
@@ -87,7 +115,11 @@ export default function App() {
        location !== "/admin/orders" &&
        location !== "/admin/customers" &&
        location !== "/admin/analytics" &&
-       location !== "/orders" && 
+       location !== "/orders" &&
+       location !== "/customer/home" &&
+       location !== "/customer/new-order" &&
+       location !== "/customer/history" &&
+       location !== "/customer/profile" &&
        user && (
         <>
           {user.role === "ADMIN" ? (
