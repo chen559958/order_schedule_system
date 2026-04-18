@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* 側邊欄 */}
       <aside
         className={`${
-          sidebarOpen ? "w-64" : "w-20"
+          sidebarOpen ? "w-48" : "w-16"
         } bg-gray-900 border-r border-gray-800 transition-all duration-300 flex flex-col`}
       >
         {/* Logo 區域 */}
