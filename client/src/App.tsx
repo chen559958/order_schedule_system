@@ -21,7 +21,7 @@ export default function App() {
 
     // 已登入但在登入頁面 → 根據身份導向
     if (user && location === "/login") {
-      if (user.role === "ADMIN") {
+      if (user.role === "ADMIN" || user.role === "admin") {
         setLocation("/admin/dashboard");
       } else {
         setLocation("/orders");
@@ -30,7 +30,7 @@ export default function App() {
     }
 
     // 非管理員試圖進入管理員頁面 → 導向客戶頁面
-    if (user && location.startsWith("/admin") && user.role !== "ADMIN") {
+    if (user && location.startsWith("/admin") && user.role !== "ADMIN" && user.role !== "admin") {
       setLocation("/orders");
       return;
     }

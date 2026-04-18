@@ -42,17 +42,20 @@ export default function AuthPage() {
       const data = await response.json();
       
       if (response.ok && data.id) {
+        // 先登入（更新 localStorage）
         login(data);
-        showAlert("成功", "登入成功！");
         
-        // 根據身份分流
-        if (data.role === "ADMIN") {
-          setLocation("/admin/dashboard");
-        } else if (data.role === "STAFF") {
-          setLocation("/staff/schedule");
-        } else {
-          setLocation("/orders");
-        }
+        // 延遲跳轉以確保狀態更新
+        setTimeout(() => {
+          // 根據身份分流
+          if (data.role === "ADMIN" || data.role === "admin") {
+            setLocation("/admin/dashboard");
+          } else if (data.role === "STAFF" || data.role === "staff") {
+            setLocation("/staff/schedule");
+          } else {
+            setLocation("/orders");
+          }
+        }, 100)
       } else {
         showAlert("錯誤", data.error || "登入失敗", true);
       }

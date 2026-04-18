@@ -1,16 +1,30 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Layout } from "@/components/Layout";
 
 export default function CustomerOrders() {
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("orders");
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState([
+    {
+      id: 1,
+      date: "2026-04-18",
+      bags: 3,
+      amount: 450,
+      status: "待取件",
+      deliveryMethod: "門到門",
+    },
+    {
+      id: 2,
+      date: "2026-04-15",
+      bags: 2,
+      amount: 300,
+      status: "已完成",
+      deliveryMethod: "自取",
+    },
+  ]);
 
   const handleLogout = () => {
     logout();
@@ -18,176 +32,134 @@ export default function CustomerOrders() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-black text-gray-100">LAUNDRY</h1>
-            <p className="text-xs text-gray-400">客戶服務</p>
+    <Layout pageTitle="我的訂單">
+      {activeTab === "orders" && (
+        <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-md p-8 flex items-center justify-center cursor-pointer hover:shadow-lg transition">
+              <div className="text-center">
+                <div className="text-4xl mb-3">+</div>
+                <p className="text-lg font-semibold text-blue-900">新增訂單</p>
+                <p className="text-sm text-blue-700 mt-1">點擊建立新訂單</p>
+              </div>
+            </div>
+
+            {orders.map((order) => (
+              <div key={order.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-sm text-gray-500">訂單編號</p>
+                    <p className="text-lg font-semibold text-gray-900">#{order.id}</p>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      order.status === "已完成"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {order.status}
+                  </span>
+                </div>
+
+                <div className="space-y-3 mb-4 pb-4 border-b border-gray-200">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">訂單日期</span>
+                    <span className="font-medium text-gray-900">{order.date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">袋數</span>
+                    <span className="font-medium text-gray-900">{order.bags} 袋</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">金額</span>
+                    <span className="font-medium text-gray-900">NT${order.amount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">配送方式</span>
+                    <span className="font-medium text-gray-900">{order.deliveryMethod}</span>
+                  </div>
+                </div>
+
+                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+                  查看詳情
+                </button>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">{user?.name}</span>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
-              登出
-            </Button>
+
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <p className="text-sm text-gray-600 mb-2">總訂單數</p>
+              <p className="text-3xl font-bold text-gray-900">{orders.length}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <p className="text-sm text-gray-600 mb-2">總金額</p>
+              <p className="text-3xl font-bold text-gray-900">NT${orders.reduce((sum, o) => sum + o.amount, 0)}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <p className="text-sm text-gray-600 mb-2">總袋數</p>
+              <p className="text-3xl font-bold text-gray-900">{orders.reduce((sum, o) => sum + o.bags, 0)} 袋</p>
+            </div>
           </div>
         </div>
-      </header>
+      )}
 
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* Sidebar */}
-        <aside className="w-64 bg-gray-900 border-r border-gray-800 p-4 overflow-y-auto">
-          <nav className="space-y-2">
-            <button
-              onClick={() => setActiveTab("orders")}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "orders"
-                  ? "bg-gray-700 text-gray-100"
-                  : "text-gray-400 hover:bg-gray-800"
-              }`}
-            >
-              📦 我的訂單
-            </button>
-            <button
-              onClick={() => setActiveTab("new-order")}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "new-order"
-                  ? "bg-gray-700 text-gray-100"
-                  : "text-gray-400 hover:bg-gray-800"
-              }`}
-            >
-              ➕ 新增訂單
-            </button>
-            <button
-              onClick={() => setActiveTab("schedule")}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "schedule"
-                  ? "bg-gray-700 text-gray-100"
-                  : "text-gray-400 hover:bg-gray-800"
-              }`}
-            >
-              📅 預約排程
-            </button>
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "profile"
-                  ? "bg-gray-700 text-gray-100"
-                  : "text-gray-400 hover:bg-gray-800"
-              }`}
-            >
-              👤 個人資料
-            </button>
-          </nav>
-        </aside>
+      {activeTab === "new-order" && (
+        <div className="max-w-2xl">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">新增訂單</h3>
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">袋數</label>
+                <input
+                  type="number"
+                  placeholder="請輸入袋數"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">送貨方式</label>
+                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option>到府收件</option>
+                  <option>到府送回</option>
+                  <option>自行送件</option>
+                </select>
+              </div>
+              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                提交訂單
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {activeTab === "orders" && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-6">我的訂單</h2>
-              <Card className="bg-gray-900 border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-gray-100">訂單列表</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {orders.length === 0 ? (
-                    <div className="text-gray-400 text-center py-12">
-                      暫無訂單
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {orders.map((order) => (
-                        <div key={order.id} className="p-4 bg-gray-800 rounded-lg">
-                          <p className="text-gray-100">訂單 #{order.id}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+      {activeTab === "schedule" && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">預約排程</h3>
+          <div className="text-center py-12 text-gray-500">
+            暫無排程
+          </div>
+        </div>
+      )}
+
+      {activeTab === "profile" && (
+        <div className="max-w-2xl">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">個人資訊</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">姓名</p>
+                <p className="text-lg font-medium text-gray-900">{user?.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Email</p>
+                <p className="text-lg font-medium text-gray-900">{user?.email}</p>
+              </div>
             </div>
-          )}
-
-          {activeTab === "new-order" && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-6">新增訂單</h2>
-              <Card className="bg-gray-900 border-gray-800 max-w-2xl">
-                <CardHeader>
-                  <CardTitle className="text-gray-100">訂單表單</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-gray-300">袋數</Label>
-                      <Input
-                        type="number"
-                        placeholder="請輸入袋數"
-                        className="bg-gray-800 border-gray-700 text-gray-100"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-300">送貨方式</Label>
-                      <select className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-gray-100 rounded">
-                        <option>到府收件</option>
-                        <option>到府送回</option>
-                        <option>自行送件</option>
-                      </select>
-                    </div>
-                    <Button className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100">
-                      提交訂單
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "schedule" && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-6">預約排程</h2>
-              <Card className="bg-gray-900 border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-gray-100">排程列表</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-gray-400 text-center py-12">
-                    暫無排程
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "profile" && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-6">個人資料</h2>
-              <Card className="bg-gray-900 border-gray-800 max-w-2xl">
-                <CardHeader>
-                  <CardTitle className="text-gray-100">個人資訊</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-gray-400 text-sm">姓名</p>
-                      <p className="text-gray-100">{user?.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-sm">Email</p>
-                      <p className="text-gray-100">{user?.email}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </Layout>
   );
 }
