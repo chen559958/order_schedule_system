@@ -21,6 +21,7 @@ import {
   getOrdersByDate,
   getAllCustomers,
   getCustomerOrderHistory,
+  getAllSchedules,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
@@ -308,6 +309,16 @@ export const appRouter = router({
         await updateScheduleDate(input.orderId, newDate);
         return { success: true };
       }),
+
+    getAllSchedules: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can view all schedules",
+        });
+      }
+      return await getAllSchedules();
+    }),
   }),
 
   // Admin customer procedures

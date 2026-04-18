@@ -230,6 +230,13 @@ export async function updateScheduleDate(orderId: number, newDate: Date) {
   await db.update(schedules).set({ scheduledDate: newDate }).where(eq(schedules.orderId, orderId));
 }
 
+// Get all schedules (for loading order dates)
+export async function getAllSchedules() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(schedules);
+}
+
 // Get orders by date (for admin order overview)
 export async function getOrdersByDate(date: Date) {
   const db = await getDb();
