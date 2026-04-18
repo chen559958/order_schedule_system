@@ -8,12 +8,13 @@ export default function AdminOrders() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // 獲取所有訂單
   const { data: allOrders = [], isLoading } = trpc.order.getAll.useQuery();
 
   // 在前端進行日期篩選
-  const filteredOrders = useMemo(() => {
+  const dateFilteredOrders = useMemo(() => {
     return allOrders.filter((order: any) => {
       if (!order.createdAt) return false;
       // 提取日期部分進行比較
@@ -21,6 +22,16 @@ export default function AdminOrders() {
       return orderDate === selectedDate;
     });
   }, [allOrders, selectedDate]);
+
+  // 在前端進行搜尋篩選
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery.trim()) return dateFilteredOrders;
+    const query = searchQuery.toLowerCase();
+    return dateFilteredOrders.filter((order: any) =>
+      order.customerName?.toLowerCase().includes(query) ||
+      order.customerPhone?.includes(query)
+    );
+  }, [dateFilteredOrders, searchQuery]);
 
   // 計算統計信息
   const stats = {
@@ -57,20 +68,30 @@ export default function AdminOrders() {
           <p className="text-gray-400">查看和管理所有訂單</p>
         </div>
 
-        {/* 日期選擇器 */}
+        {/* 日期選擇器和搜尋框 */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
             <CardTitle className="text-white">篩選</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
+            <div className="space-y-4">
+              <div>
                 <label className="block text-sm text-gray-400 mb-2">選擇日期</label>
                 <Input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">搜尋客戶</label>
+                <Input
+                  type="text"
+                  placeholder="按客戶姓名或電話搜尋..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
                 />
               </div>
             </div>
@@ -125,7 +146,7 @@ export default function AdminOrders() {
                     {filteredOrders.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-8 text-gray-500">
-                          該日期暫無訂單
+                          {searchQuery ? "搜尋結果為空" : "該日期暫無訂單"}
                         </td>
                       </tr>
                     ) : (
