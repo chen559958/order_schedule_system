@@ -1,275 +1,201 @@
-import { useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+const deliveryTypeLabels: Record<string, string> = {
+  pickup: "到府收件",
+  delivery: "到府送回",
+  self: "自行送件",
+};
 
-export function AdminDashboard() {
-  const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'today' | 'members' | 'stats'>('today');
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [loading, setLoading] = useState(false);
+const paymentMethodLabels: Record<string, string> = {
+  cash: "現金",
+  credit_card: "信用卡",
+  line_pay: "LINE Pay",
+  points: "點數扣款",
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  paid: "已付款",
+  unpaid: "未付款",
+};
+
+export default function AdminDashboard() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [scheduleData, setScheduleData] = useState<any[]>([]);
+  const [deliveryTimes, setDeliveryTimes] = useState<Record<number, string>>({});
+
+  const { data: schedules, isLoading } = trpc.schedule.getTodaySchedules.useQuery();
+  const { data: allOrders } = trpc.order.getAll.useQuery();
+  const updateDeliveryTimeMutation = trpc.schedule.updateDeliveryTime.useMutation();
+  const markCompletedMutation = trpc.schedule.markCompleted.useMutation();
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      loadTodaySchedules();
-      loadMonthlyStats();
+    if (!user || user.role !== "admin") {
+      setLocation("/");
     }
-  }, []);
+  }, [user, setLocation]);
 
-  const loadTodaySchedules = async () => {
+  useEffect(() => {
+    if (schedules && allOrders) {
+      const enriched = schedules.map((schedule) => {
+        const order = allOrders.find((o) => o.id === schedule.orderId);
+        return { ...schedule, order };
+      });
+      setScheduleData(enriched);
+    }
+  }, [schedules, allOrders]);
+
+  const handleUpdateDeliveryTime = async (scheduleId: number) => {
+    const time = deliveryTimes[scheduleId];
+    if (!time) {
+      toast.error("請輸入送貨時間");
+      return;
+    }
     try {
-      setLoading(true);
-      const data = await api.schedules.getTodaySchedules();
-      setSchedules(data || []);
-    } catch (err) {
-      console.error('Failed to load schedules:', err);
-    } finally {
-      setLoading(false);
+      await updateDeliveryTimeMutation.mutateAsync({
+        scheduleId,
+        deliveryTime: time,
+      });
+      toast.success("送貨時間已更新");
+    } catch (error) {
+      toast.error("更新失敗");
     }
   };
 
-  const loadMonthlyStats = async () => {
+  const handleMarkCompleted = async (scheduleId: number) => {
     try {
-      const data = await api.orders.getMonthlyStats(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
-      setStats(data);
-    } catch (err) {
-      console.error('Failed to load stats:', err);
+      await markCompletedMutation.mutateAsync({ scheduleId });
+      toast.success("已標記為完成");
+    } catch (error) {
+      toast.error("標記失敗");
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    try {
-      setLoading(true);
-      const data = await api.members.search(searchQuery);
-      setMembers(data.users || []);
-    } catch (err) {
-      console.error('Failed to search members:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.location.reload();
-  };
-
-  if (!user) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-950">
+        <div className="text-gray-400">載入中...</div>
+      </div>
+    );
   }
 
+  const pickupSchedules = scheduleData.filter((s) => s.order?.deliveryType === "pickup");
+  const deliverySchedules = scheduleData.filter((s) => s.order?.deliveryType === "delivery");
+  const selfSchedules = scheduleData.filter((s) => s.order?.deliveryType === "self");
+
+  const renderScheduleGroup = (title: string, schedules: any[]) => (
+    <div className="mb-8">
+      <h2 className="text-2xl font-black text-gray-100 mb-4">{title}</h2>
+      {schedules.length === 0 ? (
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="py-8 text-center text-gray-400">
+            無排程
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {schedules
+            .sort((a, b) => {
+              if (!a.deliveryTime || !b.deliveryTime) return 0;
+              return a.deliveryTime.localeCompare(b.deliveryTime);
+            })
+            .map((schedule) => (
+              <Card key={schedule.id} className="bg-gray-900 border-gray-800">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg font-bold text-gray-100">
+                        {schedule.order?.customerId ? `客戶 #${schedule.order.customerId}` : "未知客戶"}
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        訂單 #{schedule.orderId}
+                      </CardDescription>
+                    </div>
+                    <div>
+                      <input
+                        type="checkbox"
+                        checked={schedule.isCompleted}
+                        onChange={() => handleMarkCompleted(schedule.id)}
+                        className="w-6 h-6 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-gray-400 text-sm">袋數</p>
+                      <p className="text-gray-100 font-bold">{schedule.order?.bagCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">付費方式</p>
+                      <p className="text-gray-100 font-bold">
+                        {paymentMethodLabels[schedule.order?.paymentMethod] || schedule.order?.paymentMethod}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">付款狀態</p>
+                      <p className="text-gray-100 font-bold">
+                        {paymentStatusLabels[schedule.order?.paymentStatus] || schedule.order?.paymentStatus}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-800">
+                    <label className="text-gray-300 text-sm block mb-2">送貨時間</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="time"
+                        value={deliveryTimes[schedule.id] || schedule.deliveryTime || ""}
+                        onChange={(e) =>
+                          setDeliveryTimes({
+                            ...deliveryTimes,
+                            [schedule.id]: e.target.value,
+                          })
+                        }
+                        className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-gray-100 rounded"
+                      />
+                      <Button
+                        onClick={() => handleUpdateDeliveryTime(schedule.id)}
+                        disabled={updateDeliveryTimeMutation.isPending}
+                        className="bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold"
+                      >
+                        更新
+                      </Button>
+                    </div>
+                  </div>
+
+                  {schedule.order?.notes && (
+                    <div className="pt-4 border-t border-gray-800">
+                      <p className="text-gray-400 text-sm">備註</p>
+                      <p className="text-gray-100">{schedule.order.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="flex space-x-4 mb-6">
-          <button
-            onClick={() => setActiveTab('today')}
-            className={`px-4 py-2 rounded-md ${
-              activeTab === 'today'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-900 border border-gray-300'
-            }`}
-          >
-            Today's Schedule
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 rounded-md ${
-              activeTab === 'members'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-900 border border-gray-300'
-            }`}
-          >
-            Members
-          </button>
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-4 py-2 rounded-md ${
-              activeTab === 'stats'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-900 border border-gray-300'
-            }`}
-          >
-            Monthly Stats
-          </button>
+    <div className="min-h-screen bg-gray-950 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl md:text-5xl font-black text-gray-100 mb-2">當日排程</h1>
+          <p className="text-gray-400 text-sm md:text-base">TODAY'S SCHEDULE</p>
         </div>
 
-        {activeTab === 'today' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Today's Schedules</h2>
-            {loading ? (
-              <div>Loading...</div>
-            ) : schedules && schedules.length > 0 ? (
-              <div className="space-y-4">
-                {schedules.map((schedule: any) => (
-                  <div key={schedule.id} className="border border-gray-200 rounded-lg p-4">
-                    <p className="font-semibold">{schedule.user?.name || 'Unknown'}</p>
-                    <p className="text-sm text-gray-600">Time: {schedule.deliveryTime || 'Not set'}</p>
-                    <p className="text-sm text-gray-600">Type: {schedule.deliveryType}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500">No schedules for today</p>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'members' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Search Members</h2>
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Search by name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-              />
-              <button
-                onClick={handleSearch}
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            {members && members.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {members.map((member: any) => (
-                      <tr key={member.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.name || '-'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(member.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-gray-500">No members found</p>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'stats' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Monthly Statistics</h2>
-            <div className="mb-4 flex gap-2">
-              <button
-                onClick={() => {
-                  const prev = new Date(currentMonth);
-                  prev.setMonth(prev.getMonth() - 1);
-                  setCurrentMonth(prev);
-                  loadMonthlyStats();
-                }}
-                className="px-3 py-1 border border-gray-300 rounded-md"
-              >
-                ← Previous
-              </button>
-              <span className="px-3 py-1">
-                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </span>
-              <button
-                onClick={() => {
-                  const next = new Date(currentMonth);
-                  next.setMonth(next.getMonth() + 1);
-                  setCurrentMonth(next);
-                  loadMonthlyStats();
-                }}
-                className="px-3 py-1 border border-gray-300 rounded-md"
-              >
-                Next →
-              </button>
-            </div>
-            {stats ? (
-              <div>
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Orders</p>
-                    <p className="text-2xl font-bold text-blue-600">{stats.totalOrders || 0}</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="text-2xl font-bold text-green-600">${stats.totalAmount?.toFixed(2) || '0.00'}</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Bags</p>
-                    <p className="text-2xl font-bold text-purple-600">{stats.totalBags || 0}</p>
-                  </div>
-                </div>
-                {stats.orders && stats.orders.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bags</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {stats.orders.map((order: any) => (
-                          <tr key={order.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {new Date(order.orderDate).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {order.user?.name || 'Unknown'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.bags}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${order.amount}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No orders this month</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500">Loading statistics...</p>
-            )}
-          </div>
-        )}
+        {renderScheduleGroup("到府收件", pickupSchedules)}
+        {renderScheduleGroup("到府送回", deliverySchedules)}
+        {renderScheduleGroup("自行送件", selfSchedules)}
       </div>
     </div>
   );
