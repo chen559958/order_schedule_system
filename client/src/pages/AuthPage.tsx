@@ -6,14 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-const showAlert = (title: string, description: string, isError: boolean = false) => {
-  if (isError) {
-    alert(`❌ ${title}\n${description}`);
-  } else {
-    alert(`✅ ${title}\n${description}`);
-  }
-};
-
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [email, setEmail] = useState("");
@@ -21,18 +13,22 @@ export default function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [, setLocation] = useLocation();
   const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      showAlert("錯誤", "請輸入帳號和密碼", true);
+      setMessage({ type: "error", text: "請輸入帳號和密碼" });
       return;
     }
 
     setIsLoading(true);
+    setMessage(null);
+
     try {
+      console.log("開始登入，帳號:", email);
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,27 +36,38 @@ export default function AuthPage() {
       });
 
       const data = await response.json();
-      
+      console.log("登入回應:", data);
+
       if (response.ok && data.id) {
-        // 先登入（更新 localStorage）
+        console.log("登入成功，用戶資料:", data);
+        
+        // 調用 login 更新 localStorage 和 useAuth 狀態
         login(data);
         
+        console.log("已保存用戶資料到 localStorage，準備跳轉");
+        console.log("用戶角色:", data.role);
+
         // 延遲跳轉以確保狀態更新
         setTimeout(() => {
-          // 根據身份分流
+          console.log("執行跳轉邏輯");
           if (data.role === "ADMIN" || data.role === "admin") {
+            console.log("跳轉到管理員儀表板");
             setLocation("/admin/dashboard");
           } else if (data.role === "STAFF" || data.role === "staff") {
+            console.log("跳轉到員工排程");
             setLocation("/staff/schedule");
           } else {
+            console.log("跳轉到客戶訂單頁面");
             setLocation("/orders");
           }
-        }, 100)
+        }, 100);
       } else {
-        showAlert("錯誤", data.error || "登入失敗", true);
+        console.error("登入失敗:", data);
+        setMessage({ type: "error", text: data.error || "登入失敗" });
       }
     } catch (error) {
-      showAlert("錯誤", "登入失敗，請稍後重試", true);
+      console.error("登入異常:", error);
+      setMessage({ type: "error", text: "登入失敗，請稍後重試" });
     } finally {
       setIsLoading(false);
     }
@@ -69,261 +76,223 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim() || !confirmPassword.trim() || !fullName.trim()) {
-      showAlert("錯誤", "請填寫所有欄位", true);
+      setMessage({ type: "error", text: "請填寫所有欄位" });
       return;
     }
-
     if (password !== confirmPassword) {
-      showAlert("錯誤", "密碼不相符", true);
+      setMessage({ type: "error", text: "密碼不相符" });
       return;
     }
-
     if (password.length < 6) {
-      showAlert("錯誤", "密碼至少需要6個字符", true);
+      setMessage({ type: "error", text: "密碼至少需要 6 個字符" });
       return;
     }
 
     setIsLoading(true);
+    setMessage(null);
+
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email, password, fullName
-        })
+        body: JSON.stringify({ email, password, name: fullName })
       });
 
       const data = await response.json();
-      
-      if (response.ok && data.success) {
-        showAlert("成功", "註冊成功！請登入");
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "註冊成功，請登入" });
         setMode("login");
         setEmail("");
         setPassword("");
         setConfirmPassword("");
         setFullName("");
       } else {
-        showAlert("錯誤", data.error || "註冊失敗", true);
+        setMessage({ type: "error", text: data.error || "註冊失敗" });
       }
     } catch (error) {
-      showAlert("錯誤", "註冊失敗，請稍後重試", true);
+      setMessage({ type: "error", text: "註冊失敗，請稍後重試" });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-gray-100 mb-2">LAUNDRY</h1>
-          <p className="text-gray-400 text-sm">洗衣物流管理系統</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-slate-800 border-slate-700">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-white">LAUNDRY</CardTitle>
+          <CardDescription className="text-slate-400">洗衣物流管理系統</CardDescription>
+        </CardHeader>
 
-        {/* Card */}
-        <Card className="bg-gray-900 border-gray-800">
+        <CardContent>
+          {message && (
+            <div
+              className={`mb-4 p-3 rounded-lg text-sm ${
+                message.type === "error"
+                  ? "bg-red-900 text-red-200"
+                  : "bg-green-900 text-green-200"
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+
           {mode === "login" && (
-            <>
-              <CardHeader className="space-y-2">
-                <CardTitle className="text-2xl font-black text-gray-100">登入</CardTitle>
-                <CardDescription className="text-gray-400">
-                  輸入您的帳號和密碼
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-gray-300">
-                      帳號
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="請輸入帳號"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label htmlFor="email" className="text-slate-300">
+                  帳號
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="請輸入帳號"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
+                  disabled={isLoading}
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-gray-300">
-                      密碼
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="請輸入密碼"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="password" className="text-slate-300">
+                  密碼
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="請輸入密碼"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
+                  disabled={isLoading}
+                />
+              </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
-                  >
-                    {isLoading ? "登入中..." : "登入"}
-                  </Button>
-                </form>
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? "登入中..." : "登入"}
+              </Button>
 
-                <div className="flex gap-2 text-sm text-gray-400 mt-6 justify-center">
-                  <button
-                    onClick={() => setMode("forgot")}
-                    className="hover:text-gray-300 underline"
-                  >
-                    忘記密碼
-                  </button>
-                  <span>|</span>
-                  <button
-                    onClick={() => setMode("register")}
-                    className="hover:text-gray-300 underline"
-                  >
-                    註冊會員
-                  </button>
-                </div>
-              </CardContent>
-            </>
+              <div className="text-center text-sm text-slate-400 space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setMode("forgot")}
+                  className="hover:text-slate-300"
+                >
+                  忘記密碼
+                </button>
+                <span>|</span>
+                <button
+                  type="button"
+                  onClick={() => setMode("register")}
+                  className="hover:text-slate-300"
+                >
+                  註冊會員
+                </button>
+              </div>
+            </form>
           )}
 
           {mode === "register" && (
-            <>
-              <CardHeader className="space-y-2">
-                <CardTitle className="text-2xl font-black text-gray-100">註冊會員</CardTitle>
-                <CardDescription className="text-gray-400">
-                  建立新帳號
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-gray-300">
-                      姓名
-                    </Label>
-                    <Input
-                      id="fullName"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="請輸入姓名"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <Label htmlFor="fullName" className="text-slate-300">
+                  姓名
+                </Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="請輸入姓名"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
+                  disabled={isLoading}
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="registerEmail" className="text-gray-300">
-                      帳號（Email）
-                    </Label>
-                    <Input
-                      id="registerEmail"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="請輸入 Email"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="regEmail" className="text-slate-300">
+                  帳號（Email）
+                </Label>
+                <Input
+                  id="regEmail"
+                  type="email"
+                  placeholder="請輸入帳號"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
+                  disabled={isLoading}
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="registerPassword" className="text-gray-300">
-                      密碼 <span className="text-red-400 text-xs ml-1">（至少6個字母）</span>
-                    </Label>
-                    <Input
-                      id="registerPassword"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="請輸入密碼（至少6個字母）"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="regPassword" className="text-slate-300">
+                  密碼 (至少 6 個字母)
+                </Label>
+                <Input
+                  id="regPassword"
+                  type="password"
+                  placeholder="請輸入密碼"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
+                  disabled={isLoading}
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-gray-300">
-                      確認密碼
-                    </Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="請再次輸入密碼"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="confirmPassword" className="text-slate-300">
+                  確認密碼
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="請再次輸入密碼"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
+                  disabled={isLoading}
+                />
+              </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
-                  >
-                    {isLoading ? "註冊中..." : "註冊"}
-                  </Button>
-                </form>
+              <Button
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? "註冊中..." : "註冊"}
+              </Button>
 
-                <div className="text-center text-sm text-gray-400 mt-6">
-                  <button
-                    onClick={() => setMode("login")}
-                    className="hover:text-gray-300 underline"
-                  >
-                    返回登入
-                  </button>
-                </div>
-              </CardContent>
-            </>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="text-sm text-slate-400 hover:text-slate-300"
+                >
+                  返回登入
+                </button>
+              </div>
+            </form>
           )}
 
           {mode === "forgot" && (
-            <>
-              <CardHeader className="space-y-2">
-                <CardTitle className="text-2xl font-black text-gray-100">忘記密碼</CardTitle>
-                <CardDescription className="text-gray-400">
-                  請輸入您的 Email
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="forgotEmail" className="text-gray-300">
-                      帳號（Email）
-                    </Label>
-                    <Input
-                      id="forgotEmail"
-                      type="email"
-                      placeholder="請輸入 Email"
-                      className="bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
-                    />
-                  </div>
-
-                  <Button
-                    disabled={isLoading}
-                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-100 font-bold py-6 text-lg"
-                  >
-                    {isLoading ? "發送中..." : "發送重設連結"}
-                  </Button>
-                </div>
-
-                <div className="text-center text-sm text-gray-400 mt-6">
-                  <button
-                    onClick={() => setMode("login")}
-                    className="hover:text-gray-300 underline"
-                  >
-                    返回登入
-                  </button>
-                </div>
-              </CardContent>
-            </>
+            <div className="space-y-4">
+              <p className="text-slate-300">忘記密碼功能即將推出</p>
+              <Button
+                onClick={() => setMode("login")}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white"
+              >
+                返回登入
+              </Button>
+            </div>
           )}
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
