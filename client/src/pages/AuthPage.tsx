@@ -50,10 +50,12 @@ export default function AuthPage() {
         // 延遲跳轉以確保狀態更新
         setTimeout(() => {
           console.log("執行跳轉邏輯");
-          if (data.role === "ADMIN" || data.role === "admin") {
+          // 將角色轉換為大寫以進行比較
+          const roleUpper = (data.role || "").toUpperCase();
+          if (roleUpper === "ADMIN") {
             console.log("跳轉到管理員儀表板");
             setLocation("/admin/dashboard");
-          } else if (data.role === "STAFF" || data.role === "staff") {
+          } else if (roleUpper === "STAFF") {
             console.log("跳轉到員工排程");
             setLocation("/staff/schedule");
           } else {
