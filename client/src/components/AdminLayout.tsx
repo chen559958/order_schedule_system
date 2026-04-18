@@ -29,20 +29,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* 側邊欄 */}
       <aside
         className={`${
-          sidebarOpen ? "w-48" : "w-16"
+          sidebarOpen ? "w-40" : "w-14"
         } bg-gray-900 border-r border-gray-800 transition-all duration-300 flex flex-col`}
       >
         {/* Logo 區域 */}
-        <div className="p-6 border-b border-gray-800">
+        <div className="p-4 border-b border-gray-800">
           <div className="flex items-center justify-between">
-            <h1 className={`font-bold text-white ${sidebarOpen ? "text-xl" : "text-xs"}`}>
-              {sidebarOpen ? "LAUNDRY" : "L"}
+            <h1 className={`font-bold text-white ${sidebarOpen ? "text-lg" : "hidden"}`}>
+              {sidebarOpen ? "LAUNDRY" : ""}
             </h1>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="text-gray-400 hover:text-white transition-colors"
             >
-              {sidebarOpen ? "←" : "→"}
+              {sidebarOpen ? (
+                "←"
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -54,6 +60,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               key={item.path}
               onClick={() => setLocation(item.path)}
               className="w-full px-4 py-3 rounded-lg text-left text-gray-300 hover:bg-gray-800 hover:text-white transition-colors text-sm"
+              title={!sidebarOpen ? item.label : ""}
             >
               {sidebarOpen ? item.label : item.label.charAt(0)}
             </button>
@@ -61,26 +68,37 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         {/* 用戶信息與登出 */}
-        <div className="p-4 border-t border-gray-800 space-y-3">
-          <div className="text-xs text-gray-400">
-            {sidebarOpen ? (
-              <>
-                <p className="font-semibold text-gray-300">{user?.name}</p>
-                <p>{user?.email}</p>
-              </>
-            ) : (
-              <p className="text-center">👤</p>
-            )}
+        {sidebarOpen && (
+          <div className="p-4 border-t border-gray-800 space-y-3">
+            <div className="text-xs text-gray-400">
+              <p className="font-semibold text-gray-300">{user?.name}</p>
+              <p>{user?.email}</p>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              登出
+            </Button>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="w-full"
-          >
-            {sidebarOpen ? "登出" : "出"}
-          </Button>
-        </div>
+        )}
+        {!sidebarOpen && (
+          <div className="p-4 border-t border-gray-800">
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="w-full p-0"
+              title="登出"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </Button>
+          </div>
+        )}
       </aside>
 
       {/* 主要內容區域 */}

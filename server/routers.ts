@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
@@ -18,11 +18,14 @@ import {
   getScheduleByOrderId,
   updateScheduleDate,
   getDb,
+  getOrdersByDate,
+  getAllCustomers,
+  getCustomerOrderHistory,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
 import { users } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lt } from "drizzle-orm";
 
 function hashPassword(password: string) {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -214,6 +217,19 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await getOrderById(input.orderId);
       }),
+
+    getByDate: protectedProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only admins can view orders by date",
+          });
+        }
+        const date = new Date(input.date);
+        return await getOrdersByDate(date);
+      }),
   }),
 
   // Schedule procedures
@@ -291,6 +307,31 @@ export const appRouter = router({
         newDate.setHours(0, 0, 0, 0);
         await updateScheduleDate(input.orderId, newDate);
         return { success: true };
+      }),
+  }),
+
+  // Admin customer procedures
+  adminCustomer: router({
+    getAll: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can view all customers",
+        });
+      }
+      return await getAllCustomers();
+    }),
+
+    getOrderHistory: protectedProcedure
+      .input(z.object({ customerId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only admins can view customer order history",
+          });
+        }
+        return await getCustomerOrderHistory(input.customerId);
       }),
   }),
 });

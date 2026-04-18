@@ -1,4 +1,4 @@
-import { eq, and, gte, lt } from "drizzle-orm";
+import { eq, and, gte, lt, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, customers, orders, schedules, InsertCustomer, InsertOrder, InsertSchedule } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -228,4 +228,60 @@ export async function updateScheduleDate(orderId: number, newDate: Date) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(schedules).set({ scheduledDate: newDate }).where(eq(schedules.orderId, orderId));
+}
+
+// Get orders by date (for admin order overview)
+export async function getOrdersByDate(date: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Format date as YYYY-MM-DD for string comparison
+  const dateStr = date.toISOString().split('T')[0];
+  const startOfDay = `${dateStr} 00:00:00`;
+  const endOfDay = `${dateStr} 23:59:59`;
+  
+  return await db
+    .select({
+      id: orders.id,
+      customerId: orders.customerId,
+      deliveryType: orders.deliveryType,
+      bagCount: orders.bagCount,
+      paymentMethod: orders.paymentMethod,
+      paymentStatus: orders.paymentStatus,
+      notes: orders.notes,
+      orderStatus: orders.orderStatus,
+      status: orders.status,
+      completedAt: orders.completedAt,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt,
+      customerName: customers.fullName,
+      customerPhone: customers.phone,
+      customerAddress: customers.address,
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(
+      and(
+        gte(orders.createdAt, startOfDay),
+        lte(orders.createdAt, endOfDay)
+      )
+    );
+}
+
+// Get all customers for admin customer page
+export async function getAllCustomers() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(customers);
+}
+
+// Get customer order history
+export async function getCustomerOrderHistory(customerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select()
+    .from(orders)
+    .where(eq(orders.customerId, customerId))
+    .orderBy(orders.createdAt);
 }

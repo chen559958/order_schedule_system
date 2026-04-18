@@ -1,0 +1,13 @@
+
+    getByDate: protectedProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only admins can view orders by date",
+          });
+        }
+        const date = new Date(input.date);
+        return await getOrdersByDate(date);
+      }),

@@ -1,55 +1,52 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-interface Order {
-  id: number;
-  customerName: string;
-  date: string;
-  bagCount: number;
-  amount: number;
-  status: "pending" | "completed";
-}
+import { trpc } from "@/lib/trpc";
 
 export default function AdminOrders() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
 
-  const [orders] = useState<Order[]>([
-    {
-      id: 1,
-      customerName: "王小明",
-      date: "2026-04-18",
-      bagCount: 3,
-      amount: 450,
-      status: "completed",
-    },
-    {
-      id: 2,
-      customerName: "李小華",
-      date: "2026-04-18",
-      bagCount: 2,
-      amount: 300,
-      status: "pending",
-    },
-    {
-      id: 3,
-      customerName: "張小美",
-      date: "2026-04-17",
-      bagCount: 1,
-      amount: 150,
-      status: "completed",
-    },
-  ]);
+  // 獲取所有訂單
+  const { data: allOrders = [], isLoading } = trpc.order.getAll.useQuery();
 
-  const filteredOrders = orders.filter((order) => order.date === selectedDate);
+  // 在前端進行日期篩選
+  const filteredOrders = useMemo(() => {
+    return allOrders.filter((order: any) => {
+      if (!order.createdAt) return false;
+      // 提取日期部分進行比較
+      const orderDate = order.createdAt.split(' ')[0] || order.createdAt.split('T')[0];
+      return orderDate === selectedDate;
+    });
+  }, [allOrders, selectedDate]);
 
+  // 計算統計信息
   const stats = {
     totalOrders: filteredOrders.length,
-    totalAmount: filteredOrders.reduce((sum, order) => sum + order.amount, 0),
-    totalBags: filteredOrders.reduce((sum, order) => sum + order.bagCount, 0),
+    totalAmount: filteredOrders.reduce((sum: number, order: any) => {
+      // 根據送件方式估算金額（每袋150元）
+      return sum + (order.bagCount * 150);
+    }, 0),
+    totalBags: filteredOrders.reduce((sum: number, order: any) => sum + order.bagCount, 0),
+  };
+
+  const getCategoryLabel = (deliveryType: string) => {
+    const labels: Record<string, string> = {
+      pickup: "到府收送 - 收件",
+      delivery: "到府收送 - 送回",
+      self: "自行送件",
+    };
+    return labels[deliveryType] || deliveryType;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: "待處理",
+      completed: "已完成",
+    };
+    return labels[status] || status;
   };
 
   return (
@@ -110,48 +107,52 @@ export default function AdminOrders() {
             <CardTitle className="text-white">訂單列表</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="text-left py-3 px-4 text-gray-400">客戶姓名</th>
-                    <th className="text-left py-3 px-4 text-gray-400">日期</th>
-                    <th className="text-left py-3 px-4 text-gray-400">袋數</th>
-                    <th className="text-left py-3 px-4 text-gray-400">金額</th>
-                    <th className="text-left py-3 px-4 text-gray-400">狀態</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-500">
-                        該日期暫無訂單
-                      </td>
+            {isLoading ? (
+              <div className="text-gray-400">載入中...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className="text-left py-3 px-4 text-gray-400">客戶姓名</th>
+                      <th className="text-left py-3 px-4 text-gray-400">送件方式</th>
+                      <th className="text-left py-3 px-4 text-gray-400">袋數</th>
+                      <th className="text-left py-3 px-4 text-gray-400">金額</th>
+                      <th className="text-left py-3 px-4 text-gray-400">狀態</th>
                     </tr>
-                  ) : (
-                    filteredOrders.map((order) => (
-                      <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                        <td className="py-3 px-4 text-white">{order.customerName}</td>
-                        <td className="py-3 px-4 text-gray-300">{order.date}</td>
-                        <td className="py-3 px-4 text-gray-300">{order.bagCount}</td>
-                        <td className="py-3 px-4 text-gray-300">NT${order.amount}</td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              order.status === "completed"
-                                ? "bg-green-900 text-green-200"
-                                : "bg-yellow-900 text-yellow-200"
-                            }`}
-                          >
-                            {order.status === "completed" ? "已完成" : "待處理"}
-                          </span>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-gray-500">
+                          該日期暫無訂單
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      filteredOrders.map((order: any) => (
+                        <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                          <td className="py-3 px-4 text-white">{order.customerName || "未知客戶"}</td>
+                          <td className="py-3 px-4 text-gray-300">{getCategoryLabel(order.deliveryType)}</td>
+                          <td className="py-3 px-4 text-gray-300">{order.bagCount}</td>
+                          <td className="py-3 px-4 text-gray-300">NT${order.bagCount * 150}</td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                order.status === "completed"
+                                  ? "bg-green-900 text-green-200"
+                                  : "bg-yellow-900 text-yellow-200"
+                              }`}
+                            >
+                              {getStatusLabel(order.status)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

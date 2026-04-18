@@ -1,74 +1,45 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-interface Customer {
-  id: number;
-  name: string;
-  phone: string;
-  address: string;
-  orderCount: number;
-}
-
-interface CustomerHistory {
-  id: number;
-  date: string;
-  bagCount: number;
-  amount: number;
-  deliveryMethod: string;
-}
+import { trpc } from "@/lib/trpc";
 
 export default function AdminCustomers() {
-  const [customers] = useState<Customer[]>([
-    {
-      id: 1,
-      name: "王小明",
-      phone: "0912-345-678",
-      address: "台北市信義區",
-      orderCount: 5,
-    },
-    {
-      id: 2,
-      name: "李小華",
-      phone: "0912-345-679",
-      address: "台北市中山區",
-      orderCount: 3,
-    },
-    {
-      id: 3,
-      name: "張小美",
-      phone: "0912-345-680",
-      address: "台北市大安區",
-      orderCount: 8,
-    },
-  ]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  // 獲取所有客戶
+  const { data: customers = [], isLoading: customersLoading } = trpc.adminCustomer.getAll.useQuery();
 
-  const [customerHistory] = useState<CustomerHistory[]>([
-    {
-      id: 1,
-      date: "2026-04-18",
-      bagCount: 3,
-      amount: 450,
-      deliveryMethod: "到府收送",
-    },
-    {
-      id: 2,
-      date: "2026-04-15",
-      bagCount: 2,
-      amount: 300,
-      deliveryMethod: "自行送件",
-    },
-    {
-      id: 3,
-      date: "2026-04-10",
-      bagCount: 1,
-      amount: 150,
-      deliveryMethod: "到府收送",
-    },
-  ]);
+  // 獲取選定客戶的訂單歷史
+  const { data: customerOrderHistory = [] } = trpc.adminCustomer.getOrderHistory.useQuery(
+    { customerId: selectedCustomerId || 0 },
+    { enabled: selectedCustomerId !== null }
+  );
+
+  // 獲取選定的客戶詳情
+  const selectedCustomer = useMemo(() => {
+    return customers.find((c: any) => c.id === selectedCustomerId);
+  }, [customers, selectedCustomerId]);
+
+  // 計算客戶的訂單統計
+  const customerStats = useMemo(() => {
+    if (!customerOrderHistory) return { orderCount: 0, totalAmount: 0 };
+    return {
+      orderCount: customerOrderHistory.length,
+      totalAmount: customerOrderHistory.reduce((sum: number, order: any) => {
+        return sum + (order.bagCount * 150);
+      }, 0),
+    };
+  }, [customerOrderHistory]);
+
+  const getCategoryLabel = (deliveryType: string) => {
+    const labels: Record<string, string> = {
+      pickup: "到府收送 - 收件",
+      delivery: "到府收送 - 送回",
+      self: "自行送件",
+    };
+    return labels[deliveryType] || deliveryType;
+  };
 
   return (
     <AdminLayout>
@@ -86,22 +57,28 @@ export default function AdminCustomers() {
                 <CardTitle className="text-white">會員列表</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {customers.map((customer) => (
-                    <button
-                      key={customer.id}
-                      onClick={() => setSelectedCustomer(customer)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedCustomer?.id === customer.id
-                          ? "bg-blue-900 text-white"
-                          : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                      }`}
-                    >
-                      <p className="font-semibold">{customer.name}</p>
-                      <p className="text-xs text-gray-400">{customer.phone}</p>
-                    </button>
-                  ))}
-                </div>
+                {customersLoading ? (
+                  <div className="text-gray-400">載入中...</div>
+                ) : customers.length === 0 ? (
+                  <div className="text-gray-400">暫無會員</div>
+                ) : (
+                  <div className="space-y-2">
+                    {customers.map((customer: any) => (
+                      <button
+                        key={customer.id}
+                        onClick={() => setSelectedCustomerId(customer.id)}
+                        className={`w-full text-left p-3 rounded-lg transition-colors ${
+                          selectedCustomerId === customer.id
+                            ? "bg-blue-900 text-white"
+                            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                        }`}
+                      >
+                        <p className="font-semibold">{customer.fullName}</p>
+                        <p className="text-xs text-gray-400">{customer.phone}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -119,7 +96,7 @@ export default function AdminCustomers() {
                     <div>
                       <p className="text-gray-400 text-sm">姓名</p>
                       <p className="text-white text-lg font-semibold">
-                        {selectedCustomer.name}
+                        {selectedCustomer.fullName}
                       </p>
                     </div>
                     <div>
@@ -133,7 +110,13 @@ export default function AdminCustomers() {
                     <div>
                       <p className="text-gray-400 text-sm">訂單數</p>
                       <p className="text-white text-lg font-semibold">
-                        {selectedCustomer.orderCount}
+                        {customerStats.orderCount}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-sm">總消費金額</p>
+                      <p className="text-white text-lg font-semibold">
+                        NT${customerStats.totalAmount}
                       </p>
                     </div>
                   </CardContent>
@@ -145,33 +128,53 @@ export default function AdminCustomers() {
                     <CardTitle className="text-white">歷史訂單</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-800">
-                            <th className="text-left py-3 px-4 text-gray-400">日期</th>
-                            <th className="text-left py-3 px-4 text-gray-400">袋數</th>
-                            <th className="text-left py-3 px-4 text-gray-400">金額</th>
-                            <th className="text-left py-3 px-4 text-gray-400">送件方式</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {customerHistory.map((history) => (
-                            <tr
-                              key={history.id}
-                              className="border-b border-gray-800 hover:bg-gray-800/50"
-                            >
-                              <td className="py-3 px-4 text-white">{history.date}</td>
-                              <td className="py-3 px-4 text-gray-300">{history.bagCount}</td>
-                              <td className="py-3 px-4 text-gray-300">NT${history.amount}</td>
-                              <td className="py-3 px-4 text-gray-300">
-                                {history.deliveryMethod}
-                              </td>
+                    {customerOrderHistory.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        該客戶暫無訂單
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-800">
+                              <th className="text-left py-3 px-4 text-gray-400">日期</th>
+                              <th className="text-left py-3 px-4 text-gray-400">送件方式</th>
+                              <th className="text-left py-3 px-4 text-gray-400">袋數</th>
+                              <th className="text-left py-3 px-4 text-gray-400">金額</th>
+                              <th className="text-left py-3 px-4 text-gray-400">狀態</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {customerOrderHistory.map((order: any) => (
+                              <tr
+                                key={order.id}
+                                className="border-b border-gray-800 hover:bg-gray-800/50"
+                              >
+                                <td className="py-3 px-4 text-white">
+                                  {order.createdAt?.split(' ')[0] || order.createdAt?.split('T')[0] || '未知'}
+                                </td>
+                                <td className="py-3 px-4 text-gray-300">
+                                  {getCategoryLabel(order.deliveryType)}
+                                </td>
+                                <td className="py-3 px-4 text-gray-300">{order.bagCount}</td>
+                                <td className="py-3 px-4 text-gray-300">NT${order.bagCount * 150}</td>
+                                <td className="py-3 px-4">
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                      order.status === "completed"
+                                        ? "bg-green-900 text-green-200"
+                                        : "bg-yellow-900 text-yellow-200"
+                                    }`}
+                                  >
+                                    {order.status === "completed" ? "已完成" : "待處理"}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </>
