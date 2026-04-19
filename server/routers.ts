@@ -188,7 +188,6 @@ export const appRouter = router({
           notes: input.notes || "",
           paymentStatus: "unpaid",
           orderStatus: "pending",
-          status: "pending",
         });
 
         // Create schedule for the order

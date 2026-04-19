@@ -43,6 +43,13 @@
       "when": 1776582748908,
       "tag": "0005_pretty_sharon_carter",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1776584968539,
+      "tag": "0006_young_pride",
+      "breakpoints": true
     }
   ]
 }

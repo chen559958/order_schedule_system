@@ -139,8 +139,7 @@ export async function getOrdersByCustomerId(customerId: number) {
       paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       orderStatus: orders.orderStatus,
-      status: orders.status,
-      estimatedCompletionDate: orders.estimatedCompletionDate,
+      estimatedCompletion: orders.estimatedCompletion,
       completedAt: orders.completedAt,
       createdAt: orders.createdAt,
       updatedAt: orders.updatedAt,
@@ -167,8 +166,7 @@ export async function getAllOrders() {
       paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       orderStatus: orders.orderStatus,
-      status: orders.status,
-      estimatedCompletionDate: orders.estimatedCompletionDate,
+      estimatedCompletion: orders.estimatedCompletion,
       completedAt: orders.completedAt,
       createdAt: orders.createdAt,
       updatedAt: orders.updatedAt,
@@ -245,7 +243,7 @@ export async function completeOrder(orderId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const now = new Date();
-  await db.update(orders).set({ status: 'completed', completedAt: now }).where(eq(orders.id, orderId));
+  await db.update(orders).set({ orderStatus: 'completed', completedAt: now }).where(eq(orders.id, orderId));
 }
 
 export async function getScheduleByOrderId(orderId: number) {
@@ -288,8 +286,7 @@ export async function getOrdersByDate(date: Date) {
       paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       orderStatus: orders.orderStatus,
-      status: orders.status,
-      estimatedCompletionDate: orders.estimatedCompletionDate,
+      estimatedCompletion: orders.estimatedCompletion,
       completedAt: orders.completedAt,
       createdAt: orders.createdAt,
       updatedAt: orders.updatedAt,

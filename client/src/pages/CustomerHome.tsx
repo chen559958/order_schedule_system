@@ -14,7 +14,7 @@ export default function CustomerHome() {
   const pendingOrders = useMemo(() => {
     return myOrders.filter((order: any) => {
       // 篩選出狀態為 pending 或 scheduled 的訂單（非 completed）
-      return order.status === "pending" || order.orderStatus === "pending" || order.orderStatus === "scheduled";
+      return order.orderStatus === "pending" || order.orderStatus === "scheduled";
     });
   }, [myOrders]);
 
@@ -79,63 +79,43 @@ export default function CustomerHome() {
                   return (
                     <div
                       key={order.id}
-                      className="border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:bg-blue-50 transition"
+                      className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <div className="space-y-4">
-                        {/* 第一行：訂單編號、內容、下單日期 */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          {/* 訂單編號 - 藍色高亮 */}
-                          <div>
-                            <p className="text-xs text-gray-500 mb-2 font-semibold">訂單編號</p>
-                            <p className="text-2xl font-bold text-blue-600">{orderNumber}</p>
-                          </div>
-
-                          {/* 訂單內容 */}
-                          <div>
-                            <p className="text-xs text-gray-500 mb-2 font-semibold">訂單內容</p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {getDeliveryLabel(order.deliveryType)}
-                            </p>
-                            <p className="text-sm text-gray-600 mt-1">{order.bagCount} 袋</p>
-                          </div>
-
-                          {/* 下單日期 */}
-                          <div>
-                            <p className="text-xs text-gray-500 mb-2 font-semibold">下單日期</p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {formatDate(order.createdAt)}
-                            </p>
-                          </div>
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">訂單編號</p>
+                          <p className="text-lg font-bold text-gray-900">{orderNumber}</p>
                         </div>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                          {order.orderStatus === "pending" ? "待處理" : "已排程"}
+                        </span>
+                      </div>
 
-                        {/* 預計完成日期 - 顯眼標註 */}
-                        {order.estimatedCompletionDate && (
-                          <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
-                            <p className="text-xs text-amber-700 font-semibold mb-1">預計完成日期</p>
-                            <p className="text-xl font-bold text-amber-700">
-                              {formatDate(order.estimatedCompletionDate)}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* 備註 */}
-                        {order.notes && (
-                          <div className="pt-3 border-t border-gray-200">
-                            <p className="text-xs text-gray-500 mb-2 font-semibold">備註</p>
-                            <p className="text-sm text-gray-700">{order.notes}</p>
-                          </div>
-                        )}
-
-                        {/* 狀態徽章 */}
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                            進行中
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            付款狀態：{order.paymentStatus === "paid" ? "已付款" : "未付款"}
-                          </span>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <p className="text-sm text-gray-600">訂單內容</p>
+                          <p className="text-gray-900 font-medium">{order.bagCount} 袋 {getDeliveryLabel(order.deliveryType)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">下單日期</p>
+                          <p className="text-gray-900 font-medium">{formatDate(order.createdAt)}</p>
                         </div>
                       </div>
+
+                      {order.estimatedCompletion && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <p className="text-sm text-amber-800">
+                            <span className="font-semibold">預計完成日期：</span>
+                            {formatDate(order.estimatedCompletion)}
+                          </p>
+                        </div>
+                      )}
+
+                      {order.notes && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm text-gray-600">備註：{order.notes}</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
