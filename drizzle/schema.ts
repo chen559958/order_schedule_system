@@ -25,7 +25,7 @@ export const orders = mysqlTable("orders", {
 	completedAt: timestamp({ mode: 'string' }),
 	createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
-}, (table) => [index("orders_customerId_idx").on(table.customerId)]);
+});
 
 export const schedules = mysqlTable("schedules", {
 	id: int().autoincrement().notNull(),
@@ -35,7 +35,7 @@ export const schedules = mysqlTable("schedules", {
 	isCompleted: tinyint().default(0).notNull(),
 	createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
-}, (table) => [index("schedules_orderId_idx").on(table.orderId)]);
+});
 
 export const users = mysqlTable("users", {
 	id: int().autoincrement().notNull(),
