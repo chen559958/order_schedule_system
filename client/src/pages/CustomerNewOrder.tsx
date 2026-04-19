@@ -99,25 +99,25 @@ export default function CustomerNewOrder() {
       <div className="space-y-8 max-w-3xl">
         {/* 頁面標題 */}
         <div>
-          <h1 className="text-5xl font-bold text-gray-900 mb-2">新增訂單</h1>
-          <p className="text-gray-600 text-lg">填入訂單資訊並送出</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">新增訂單</h1>
+          <p className="text-gray-600">填寫訂單資訊並提交</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 區塊一：會員資料 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">區塊一：會員資料</CardTitle>
+              <CardTitle className="text-xl text-gray-900">會員資料</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 自動填入勾選框 */}
-              <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              {/* Checkbox：同會員註冊資料 */}
+              <div className="flex items-center gap-3 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <input
                   type="checkbox"
                   id="useUserInfo"
                   checked={useUserInfo}
                   onChange={(e) => setUseUserInfo(e.target.checked)}
-                  className="w-5 h-5 cursor-pointer text-blue-600 rounded"
+                  className="w-5 h-5 text-blue-600 rounded cursor-pointer"
                 />
                 <label htmlFor="useUserInfo" className="text-sm font-medium text-gray-700 cursor-pointer">
                   同會員註冊資料
@@ -126,9 +126,7 @@ export default function CustomerNewOrder() {
 
               {/* 姓名 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  姓名 <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">姓名</label>
                 <Input
                   type="text"
                   value={customerName}
@@ -140,9 +138,7 @@ export default function CustomerNewOrder() {
 
               {/* 電話 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  電話 <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">電話</label>
                 <Input
                   type="tel"
                   value={customerPhone}
@@ -154,9 +150,7 @@ export default function CustomerNewOrder() {
 
               {/* 地址 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  地址 <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">地址</label>
                 <Input
                   type="text"
                   value={customerAddress}
@@ -171,82 +165,93 @@ export default function CustomerNewOrder() {
           {/* 區塊二：訂單資訊 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">區塊二：訂單資訊</CardTitle>
+              <CardTitle className="text-xl text-gray-900">訂單資訊</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 袋數 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  袋數 <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">袋數</label>
                 <Input
                   type="number"
-                  min="1"
                   value={bagCount}
                   onChange={(e) => setBagCount(e.target.value)}
                   placeholder="請輸入袋數"
+                  min="1"
                   className="border-gray-300"
                 />
               </div>
 
               {/* 備註 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  備註
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">備註</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="請輸入備註（選填）"
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* 支付方式：按鈕組 */}
+          {/* 支付方式 - 按鈕組 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">支付方式</CardTitle>
+              <CardTitle className="text-xl text-gray-900">支付方式</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col md:flex-row gap-3">
-                {[
-                  { value: "cash", label: "現金" },
-                  { value: "line_pay", label: "LINE Pay" },
-                  { value: "apple_pay", label: "Apple Pay" },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setPaymentMethod(option.value as any)}
-                    className={`flex-1 px-4 py-3 rounded-lg border-2 font-semibold transition ${
-                      paymentMethod === option.value
-                        ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                        : "bg-white text-gray-700 border-gray-300 hover:border-blue-300 hover:bg-blue-50"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("cash")}
+                  className={`px-6 py-3 rounded-lg font-semibold transition ${
+                    paymentMethod === "cash"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  現金
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("line_pay")}
+                  className={`px-6 py-3 rounded-lg font-semibold transition ${
+                    paymentMethod === "line_pay"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  LINE Pay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("apple_pay")}
+                  className={`px-6 py-3 rounded-lg font-semibold transition ${
+                    paymentMethod === "apple_pay"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  Apple Pay
+                </button>
               </div>
             </CardContent>
           </Card>
 
           {/* 提交按鈕 */}
-          <div className="flex gap-3">
+          <div className="flex gap-4 pt-6">
             <Button
               type="submit"
               disabled={createOrderMutation.isPending}
-              className="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3 text-base font-semibold"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
             >
-              {createOrderMutation.isPending ? "送出中..." : "送出訂單"}
+              {createOrderMutation.isPending ? "提交中..." : "提交訂單"}
             </Button>
             <Button
               type="button"
               onClick={() => setLocation("/customer/home")}
-              className="flex-1 bg-gray-200 text-gray-700 hover:bg-gray-300 py-3 text-base font-semibold"
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg"
             >
               取消
             </Button>

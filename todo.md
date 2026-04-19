@@ -144,3 +144,9 @@
 - [x] 驗證資料一致性
   - [x] 修改個人資料後，新增訂單自動填入獲取最新資料
   - [x] useEffect 監聽 Checkbox 狀態進行自動填入
+
+## 新增訂單功能修複（緊急）
+- [x] 修複 CustomerNewOrder.tsx 的 import 缺失問題
+- [x] 修複 order.create 程序未設定 status 欄位的問題
+- [x] 測試新增訂單功能是否正常運作
+- [x] 驗證訂單在首頁能正確顯示
