@@ -166,12 +166,21 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const customer = await getCustomerByUserId(ctx.user.id);
+        let customer = await getCustomerByUserId(ctx.user.id);
         if (!customer) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: "Customer profile not found",
+          // 自動為用戶創建 customer 記錄
+          await upsertCustomer(ctx.user.id, {
+            fullName: ctx.user.name || "User",
+            phone: "",
+            address: "",
           });
+          customer = await getCustomerByUserId(ctx.user.id);
+          if (!customer) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to create customer profile",
+            });
+          }
         }
 
         const orderId = await createOrder({
