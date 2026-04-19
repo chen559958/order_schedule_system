@@ -144,3 +144,10 @@
 - [x] 驗證資料一致性
   - [x] 修改個人資料後，新增訂單自動填入獲取最新資料
   - [x] useEffect 監聽 Checkbox 狀態進行自動填入
+
+## API Query Error 修復（緊急）
+- [ ] 修正 JOIN 目標 - 確認是否應該 JOIN users 而不是 customers
+- [ ] 動態抓取 User ID - 使用 ctx.user.id 而不是硬編碼的 30001
+- [ ] 校對欄位名稱 - 確認 estimatedCompletion 欄位
+- [ ] 重新生成代碼 - 執行 drizzle-kit push
+- [ ] 測試修復後的查詢功能

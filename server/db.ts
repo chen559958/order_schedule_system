@@ -152,6 +152,33 @@ export async function getOrdersByCustomerId(customerId: number) {
     .where(eq(orders.customerId, customerId));
 }
 
+export async function getOrdersByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select({
+      id: orders.id,
+      customerId: orders.customerId,
+      deliveryType: orders.deliveryType,
+      bagCount: orders.bagCount,
+      paymentMethod: orders.paymentMethod,
+      paymentStatus: orders.paymentStatus,
+      notes: orders.notes,
+      orderStatus: orders.orderStatus,
+      estimatedCompletion: orders.estimatedCompletion,
+      completedAt: orders.completedAt,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt,
+      customerName: customers.fullName,
+      customerPhone: customers.phone,
+      customerAddress: customers.address,
+    })
+    .from(orders)
+    .innerJoin(customers, eq(orders.customerId, customers.id))
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(eq(customers.userId, userId));
+}
+
 export async function getAllOrders() {
   const db = await getDb();
   if (!db) return [];

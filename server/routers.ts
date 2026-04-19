@@ -8,6 +8,7 @@ import {
   upsertCustomer,
   createOrder,
   getOrdersByCustomerId,
+  getOrdersByUserId,
   getAllOrders,
   getOrderById,
   createSchedule,
@@ -204,9 +205,7 @@ export const appRouter = router({
       }),
 
     getMyOrders: protectedProcedure.query(async ({ ctx }) => {
-      const customer = await getCustomerByUserId(ctx.user.id);
-      if (!customer) return [];
-      return await getOrdersByCustomerId(customer.id);
+      return await getOrdersByUserId(ctx.user.id);
     }),
 
     getAll: protectedProcedure.query(async ({ ctx }) => {
