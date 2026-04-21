@@ -256,6 +256,8 @@ export const appRouter = router({
           o.paymentStatus,
           o.notes,
           o.orderStatus,
+          o.orderNumber,
+          o.progress,
           o.estimatedCompletion,
           o.completedAt,
           o.createdAt,
@@ -287,9 +289,9 @@ export const appRouter = router({
         if (!db) throw new Error('Database not available');
         
         // 使用 Drizzle query builder 更新訂單進度
+        // 不手動設定 updatedAt，讓資料庫自動更新
         await db.update(orders).set({
           progress: input.progress,
-          updatedAt: new Date(),
         }).where(eq(orders.id, input.orderId));
         
         return { success: true };

@@ -74,9 +74,9 @@ export function useAuth() {
 
   const login = useCallback((userData: User) => {
     console.log("[useAuth] 執行 login，用戶數據:", userData);
-    // 確保 role 是大寫
+    // 保持 role 小寫以匹配後端
     if (userData.role) {
-      userData.role = userData.role.toUpperCase();
+      userData.role = userData.role.toLowerCase();
     }
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", userData.token || "");

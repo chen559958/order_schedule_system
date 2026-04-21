@@ -4,7 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "ADMIN" | "CUSTOMER" | "STAFF" | "USER" | "user" | "admin";
+  requiredRole?: "admin" | "user";
   redirectTo?: string;
 }
 
@@ -29,22 +29,17 @@ export function ProtectedRoute({
     // 檢查角色權限
     if (requiredRole) {
       const userRole = (user.role || "").toLowerCase();
-      const requiredRoleLower = (requiredRole || "").toLowerCase();
-      
-      // 特殊處理：customer 和 user 視為相同角色
-      const normalizedUserRole = userRole === "user" ? "customer" : userRole;
-      const normalizedRequiredRole = requiredRoleLower === "user" ? "customer" : requiredRoleLower;
       
       // 角色必須完全匹配
-      if (normalizedUserRole !== normalizedRequiredRole) {
-        // 非管理員試圖進入管理員頁面 → 導向客戶頁面
-        if (normalizedRequiredRole === "admin" && normalizedUserRole !== "admin") {
-          setLocation("/customer/home");
+      if (userRole !== requiredRole) {
+        // admin 試圖進入 user 頁面 → 導向管理員頁面
+        if (userRole === "admin" && requiredRole === "user") {
+          setLocation("/admin/dashboard");
           return;
         }
-        // 管理員試圖進入客戶頁面 → 導向管理員頁面
-        if (normalizedRequiredRole === "customer" && normalizedUserRole === "admin") {
-          setLocation("/admin/dashboard");
+        // user 試圖進入 admin 頁面 → 導向客戶頁面
+        if (userRole === "user" && requiredRole === "admin") {
+          setLocation("/customer/home");
           return;
         }
         // 其他權限不符 → 導向指定頁面

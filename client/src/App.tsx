@@ -56,25 +56,25 @@ export default function App() {
       {location === "/login" && <AuthPage />}
       
       {location === "/admin/dashboard" && (
-        <ProtectedRoute requiredRole="ADMIN">
+        <ProtectedRoute requiredRole="admin">
           <AdminDashboard />
         </ProtectedRoute>
       )}
       
       {location === "/admin/orders" && (
-        <ProtectedRoute requiredRole="ADMIN">
+        <ProtectedRoute requiredRole="admin">
           <AdminOrders />
         </ProtectedRoute>
       )}
       
       {location === "/admin/customers" && (
-        <ProtectedRoute requiredRole="ADMIN">
+        <ProtectedRoute requiredRole="admin">
           <AdminCustomers />
         </ProtectedRoute>
       )}
       
       {location === "/admin/analytics" && (
-        <ProtectedRoute requiredRole="ADMIN">
+        <ProtectedRoute requiredRole="admin">
           <AdminAnalytics />
         </ProtectedRoute>
       )}
@@ -82,25 +82,25 @@ export default function App() {
       {/* /orders 路由已移除，統一使用 /customer/home */}
       
       {location === "/customer/home" && (
-        <ProtectedRoute requiredRole="CUSTOMER">
+        <ProtectedRoute requiredRole="user">
           <CustomerHome />
         </ProtectedRoute>
       )}
       
       {location === "/customer/new-order" && (
-        <ProtectedRoute requiredRole="CUSTOMER">
+        <ProtectedRoute requiredRole="user">
           <CustomerNewOrder />
         </ProtectedRoute>
       )}
       
       {location === "/customer/history" && (
-        <ProtectedRoute requiredRole="CUSTOMER">
+        <ProtectedRoute requiredRole="user">
           <CustomerHistory />
         </ProtectedRoute>
       )}
       
       {location === "/customer/profile" && (
-        <ProtectedRoute requiredRole="CUSTOMER">
+        <ProtectedRoute requiredRole="user">
           <Profile />
         </ProtectedRoute>
       )}

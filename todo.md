@@ -191,7 +191,9 @@
 ## 統一帳號登入頁面（新增需求）
 - [x] 調查測試帳號和新會員帳號進入頁面的差異
 - [x] 分析 App.tsx 路由邏輯和重定向規則
-- [x] 修復 AuthPage.tsx - 移除 role 大寫轉換，改為跳轉到 /customer/home
-- [x] 修復 App.tsx - 移除 /orders 路由，統一使用 /customer/home
-- [x] 修復 ProtectedRoute.tsx - 統一使用小寫 role 比較，改為重定向到 /customer/home
+- [x] 修複 AuthPage.tsx - 移除 role 大寶轉換，改為跳轉到 /customer/home
+- [x] 修複 App.tsx - 移除 /orders 路由，統一使用 /customer/home
+- [x] 修複 ProtectedRoute.tsx - 移除允許 admin 存取 customer 路由的特殊處理
+- [x] 修複 ProtectedRoute.tsx - 添加 admin 試圖進入客戶頁面時自動重定向到管理員後台
+- [x] 驗證所有帳號進入相同頁面（admin 進入深色管理員後台，user 進入淺色客戶頁面）
 - [x] 驗證所有 user 角色帳號進入相同的淺色客戶頁面
