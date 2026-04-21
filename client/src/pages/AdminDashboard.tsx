@@ -50,6 +50,10 @@ export default function AdminDashboard() {
       setPendingOrders(pendingOrders.filter(order => order.id !== variables.orderId));
       // 重新獲取待處理訂單列表
       refetch();
+      // 導航到營業概況頁面
+      setTimeout(() => {
+        setLocation("/admin/business");
+      }, 500);
     },
   });
 
@@ -103,23 +107,6 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const handleCompleteOrder = (order: any) => {
-    setSelectedOrderForComplete(order);
-    setShowCompleteConfirm(true);
-  };
-
-  const confirmCompleteOrder = () => {
-    if (selectedOrderForComplete) {
-      completeOrderMutation.mutate({ orderId: selectedOrderForComplete.id });
-      setShowCompleteConfirm(false);
-      setSelectedOrderForComplete(null);
-      // 導航到營業概況頁面
-      setTimeout(() => {
-        setLocation("/admin/business");
-      }, 500);
-    }
-  };
-
   const handleProgressClick = (orderId: number) => {
     setSelectedOrderId(orderId);
     setShowProgressDialog(true);
@@ -127,10 +114,33 @@ export default function AdminDashboard() {
 
   const handleProgressSelect = (progress: string) => {
     if (selectedOrderId) {
+      if (progress === "completed") {
+        // 如果選擇「完成」，先顯示確認視窗
+        const order = pendingOrders.find(o => o.id === selectedOrderId);
+        setSelectedOrderForComplete(order);
+        setShowProgressDialog(false);
+        setShowCompleteConfirm(true);
+      } else {
+        // 其他進度直接更新
+        updateProgressMutation.mutate({
+          orderId: selectedOrderId,
+          progress: progress as any,
+        });
+      }
+    }
+  };
+
+  const confirmCompleteOrder = () => {
+    if (selectedOrderForComplete) {
+      // 先更新進度為 completed
       updateProgressMutation.mutate({
-        orderId: selectedOrderId,
-        progress: progress as any,
+        orderId: selectedOrderForComplete.id,
+        progress: "completed" as any,
       });
+      // 然後完成訂單
+      completeOrderMutation.mutate({ orderId: selectedOrderForComplete.id });
+      setShowCompleteConfirm(false);
+      setSelectedOrderForComplete(null);
     }
   };
 
@@ -227,27 +237,16 @@ export default function AdminDashboard() {
                           <td className="py-2 px-4">{order.bagCount} 袋</td>
                           <td className="py-2 px-4">{paymentLabels[order.paymentMethod] || order.paymentMethod}</td>
                           <td className="py-2 px-4 text-gray-400 max-w-xs truncate">{order.notes || "無"}</td>
-                          <td className="py-2 px-4 flex gap-2">
+                          <td className="py-2 px-4">
                             <Button
                               size="sm"
                               className={`${getProgressColor(currentProgress)} text-white`}
                               onClick={() => handleProgressClick(order.id)}
-                              disabled={updateProgressMutation.isPending}
+                              disabled={updateProgressMutation.isPending || completeOrderMutation.isPending}
                             >
                               {PROGRESS_LABELS[currentProgress] || "尚未收件"}
                             </Button>
-                            {currentProgress === "completed" && (
-                              <Button
-                                size="sm"
-                                className="bg-red-600 hover:bg-red-700 text-white"
-                                onClick={() => handleCompleteOrder(order)}
-                                disabled={completeOrderMutation.isPending}
-                              >
-                                刪除
-                              </Button>
-                            )}
                           </td>
-
                         </tr>
                       );
                     })}
@@ -283,6 +282,10 @@ export default function AdminDashboard() {
               className="bg-gray-700 hover:bg-gray-600 text-white"
             >
               取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 完成訂單確認彈跳視窗 */}
       <Dialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
@@ -302,13 +305,9 @@ export default function AdminDashboard() {
             <Button
               onClick={confirmCompleteOrder}
               className="bg-green-600 hover:bg-green-700 text-white"
-              disabled={completeOrderMutation.isPending}
+              disabled={completeOrderMutation.isPending || updateProgressMutation.isPending}
             >
               是
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
             </Button>
           </DialogFooter>
         </DialogContent>
