@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, lte } from "drizzle-orm";
+import { eq, and, gte, lt, lte, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, customers, orders, schedules, InsertCustomer, InsertOrder, InsertSchedule } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -123,9 +123,12 @@ export async function createOrder(data: InsertOrder): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  // 生成當天遞增編號
+  // 生成當天遞增編號 (YYMMDD-序輯)
   const today = new Date();
-  const dateStr = today.toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
+  const year = String(today.getFullYear()).slice(-2);
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const date = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${year}${month}${date}`; // YYMMDD
   
   // 查詢今天已有的訂單數
   const todayOrders = await db.execute(`
@@ -155,6 +158,8 @@ export async function getOrdersByCustomerId(customerId: number) {
       paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       orderStatus: orders.orderStatus,
+      orderNumber: orders.orderNumber,
+      progress: orders.progress,
       estimatedCompletion: orders.estimatedCompletion,
       completedAt: orders.completedAt,
       createdAt: orders.createdAt,
@@ -165,7 +170,8 @@ export async function getOrdersByCustomerId(customerId: number) {
     })
     .from(orders)
     .leftJoin(customers, eq(orders.customerId, customers.id))
-    .where(eq(orders.customerId, customerId));
+    .where(eq(orders.customerId, customerId))
+    .orderBy(asc(orders.createdAt));
 }
 
 export async function getOrdersByUserId(userId: number) {
@@ -181,6 +187,8 @@ export async function getOrdersByUserId(userId: number) {
       paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       orderStatus: orders.orderStatus,
+      orderNumber: orders.orderNumber,
+      progress: orders.progress,
       estimatedCompletion: orders.estimatedCompletion,
       completedAt: orders.completedAt,
       createdAt: orders.createdAt,
@@ -192,7 +200,8 @@ export async function getOrdersByUserId(userId: number) {
     .from(orders)
     .leftJoin(users, eq(orders.customerId, users.id))
     .leftJoin(customers, eq(users.id, customers.userId))
-    .where(eq(orders.customerId, userId));
+    .where(eq(orders.customerId, userId))
+    .orderBy(asc(orders.createdAt));
 }
 
 export async function getAllOrders() {
@@ -209,6 +218,8 @@ export async function getAllOrders() {
       paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       orderStatus: orders.orderStatus,
+      orderNumber: orders.orderNumber,
+      progress: orders.progress,
       estimatedCompletion: orders.estimatedCompletion,
       completedAt: orders.completedAt,
       createdAt: orders.createdAt,
@@ -218,7 +229,8 @@ export async function getAllOrders() {
       customerAddress: customers.address,
     })
     .from(orders)
-    .leftJoin(customers, eq(orders.customerId, customers.id));
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .orderBy(asc(orders.createdAt));
 }
 
 export async function getOrderById(orderId: number) {
