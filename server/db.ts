@@ -383,3 +383,57 @@ export async function updateCustomer(customerId: number, data: Partial<Omit<Inse
   if (!db) throw new Error("Database not available");
   await db.update(customers).set(data).where(eq(customers.id, customerId));
 }
+
+
+// OrderItems 相關函數
+export async function getOrderItems(orderId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const { orderItems } = await import("../drizzle/schema");
+  return await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId))
+    .orderBy(orderItems.id);
+}
+
+export async function createOrderItem(orderId: number, itemNumber: string, notes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { orderItems } = await import("../drizzle/schema");
+  const result = await db.insert(orderItems).values({
+    orderId,
+    itemNumber,
+    notes: notes || null,
+  });
+  
+  return result;
+}
+
+export async function updateOrderItem(itemId: number, notes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { orderItems } = await import("../drizzle/schema");
+  await db.update(orderItems).set({
+    notes: notes || null,
+  }).where(eq(orderItems.id, itemId));
+}
+
+export async function deleteOrderItem(itemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { orderItems } = await import("../drizzle/schema");
+  await db.delete(orderItems).where(eq(orderItems.id, itemId));
+}
+
+export async function deleteOrderItemsByOrderId(orderId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { orderItems } = await import("../drizzle/schema");
+  await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+}

@@ -23,6 +23,11 @@ import {
   getAllCustomers,
   getCustomerOrderHistory,
   getAllSchedules,
+  getOrderItems,
+  createOrderItem,
+  updateOrderItem,
+  deleteOrderItem,
+  deleteOrderItemsByOrderId,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
@@ -385,6 +390,71 @@ export const appRouter = router({
       }
       return await getAllSchedules();
     }),
+  }),
+
+  // OrderItems procedures
+  orderItem: router({
+    getByOrderId: protectedProcedure
+      .input(z.object({ orderId: z.number() }))
+      .query(async ({ input }) => {
+        return await getOrderItems(input.orderId);
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        orderId: z.number(),
+        itemNumber: z.string(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const order = await getOrderById(input.orderId);
+        if (!order) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Order not found',
+          });
+        }
+        
+        if (ctx.user.role !== 'admin' && order.customerId !== ctx.user.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'You do not have permission to add items to this order',
+          });
+        }
+        
+        await createOrderItem(input.orderId, input.itemNumber, input.notes);
+        return { success: true };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        itemId: z.number(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await updateOrderItem(input.itemId, input.notes);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ itemId: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteOrderItem(input.itemId);
+        return { success: true };
+      }),
+
+    deleteByOrderId: protectedProcedure
+      .input(z.object({ orderId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Only admins can delete all items for an order',
+          });
+        }
+        await deleteOrderItemsByOrderId(input.orderId);
+        return { success: true };
+      }),
   }),
 
   // Admin customer procedures

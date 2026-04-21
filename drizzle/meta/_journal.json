@@ -57,6 +57,20 @@
       "when": 1776594229050,
       "tag": "0007_even_speed_demon",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1776755784848,
+      "tag": "0008_thin_jack_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1776755896557,
+      "tag": "0009_blue_miek",
+      "breakpoints": true
     }
   ]
 }

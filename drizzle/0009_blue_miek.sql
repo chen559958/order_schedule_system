@@ -1,0 +1,1 @@
+ALTER TABLE `orderItems` MODIFY COLUMN `createdAt` timestamp NOT NULL DEFAULT (now());

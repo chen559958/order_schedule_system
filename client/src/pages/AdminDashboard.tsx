@@ -232,7 +232,14 @@ export default function AdminDashboard() {
                       const currentProgress = order.progress || "pending";
                       return (
                         <tr key={order.id} className="border-b border-gray-700 hover:bg-gray-800">
-                          <td className="py-2 px-4 font-semibold text-blue-400">{orderNumber}</td>
+                          <td className="py-2 px-4 font-semibold">
+                            <button
+                              onClick={() => setLocation(`/order/${orderNumber}`)}
+                              className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                            >
+                              {orderNumber}
+                            </button>
+                          </td>
                           <td className="py-2 px-4">{order.customerName || "未知客戶"}</td>
                           <td className="py-2 px-4">{order.bagCount} 袋</td>
                           <td className="py-2 px-4">{paymentLabels[order.paymentMethod] || order.paymentMethod}</td>

@@ -6,12 +6,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: "admin" | "user";
   redirectTo?: string;
+  allowAdmin?: boolean;
 }
 
 export function ProtectedRoute({
   children,
   requiredRole,
   redirectTo = "/login",
+  allowAdmin = false,
 }: ProtectedRouteProps) {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
@@ -29,6 +31,12 @@ export function ProtectedRoute({
     // 檢查角色權限
     if (requiredRole) {
       const userRole = (user.role || "").toLowerCase();
+      
+      // 如果允許 admin 存取，且用戶是 admin，則允許
+      if (allowAdmin && userRole === "admin") {
+        setIsAuthorized(true);
+        return;
+      }
       
       // 角色必須完全匹配
       if (userRole !== requiredRole) {
