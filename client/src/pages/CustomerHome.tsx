@@ -34,14 +34,9 @@ export default function CustomerHome() {
     });
   }, [myOrders]);
 
-  // 生成訂單編號 (YYMMDD-NN 格式)
-  const generateOrderNumber = (createdAt: string, index: number) => {
-    const date = new Date(createdAt);
-    const year = String(date.getFullYear()).slice(-2);
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const sequence = String(index + 1).padStart(2, "0");
-    return `${year}${month}${day}-${sequence}`;
+  // 直接使用資料庫中的 orderNumber
+  const getOrderNumber = (order: any): string => {
+    return order.orderNumber || "未知編號";
   };
 
   const getDeliveryLabel = (deliveryType: string) => {
@@ -102,8 +97,8 @@ export default function CustomerHome() {
               </div>
             ) : (
               <div className="space-y-4">
-                {pendingOrders.map((order: any, index: number) => {
-                  const orderNumber = generateOrderNumber(order.createdAt, index);
+                {pendingOrders.map((order: any) => {
+                  const orderNumber = getOrderNumber(order);
                   const progress = order.progress || "pending";
                   const progressLabel = PROGRESS_LABELS[progress] || "尚未收件";
                   const progressColor = PROGRESS_COLORS[progress] || "bg-gray-100 text-gray-800";

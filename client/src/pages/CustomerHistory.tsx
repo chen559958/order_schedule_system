@@ -27,6 +27,10 @@ export default function CustomerHistory() {
     return labels[deliveryType] || deliveryType;
   };
 
+  const getOrderNumber = (order: any): string => {
+    return order.orderNumber || "未知編號";
+  };
+
   const getPaymentLabel = (paymentMethod: string) => {
     const labels: Record<string, string> = {
       cash: "現金",
@@ -78,7 +82,15 @@ export default function CustomerHistory() {
                     key={order.id}
                     className="border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:bg-blue-50 transition"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                      {/* 訂單編號 */}
+                      <div>
+                        <p className="text-xs text-gray-500 mb-2 font-semibold">訂單編號</p>
+                        <p className="text-lg font-semibold text-blue-600">
+                          {getOrderNumber(order)}
+                        </p>
+                      </div>
+
                       {/* 下單日期 */}
                       <div>
                         <p className="text-xs text-gray-500 mb-2 font-semibold">下單日期</p>
