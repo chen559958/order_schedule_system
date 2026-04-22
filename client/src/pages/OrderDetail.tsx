@@ -33,7 +33,9 @@ interface Order {
 }
 
 export default function OrderDetail() {
-  const { orderNumber } = useParams<{ orderNumber: string }>();
+  const [location] = useLocation();
+  // 從 URL 中手動提取 orderNumber（格式：/order/260422-01）
+  const orderNumber = location.startsWith('/order/') ? location.substring(7) : '';
   const [, setLocation] = useLocation();
   const { user, isLoading: userLoading } = useAuth();
 
