@@ -146,8 +146,11 @@ export async function createOrder(data: InsertOrder): Promise<number> {
   
   // 添加訂單編號到數據
   const orderData = { ...data, orderNumber };
+  console.log('[Database] Creating order with number:', orderNumber);
   const result = await db.insert(orders).values(orderData);
-  return (result as any).insertId || 0;
+  const insertId = (result as any).insertId || 0;
+  console.log('[Database] Order created with ID:', insertId, 'Order Number:', orderNumber);
+  return insertId;
 }
 
 export async function getOrdersByCustomerId(customerId: number) {

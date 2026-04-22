@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -14,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface OrderItem {
   id: number;
@@ -45,12 +45,20 @@ export default function OrderDetail() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
-  // 直接按訂單編號查詢訂單
-  const { data: queriedOrder, isLoading: orderLoading } = trpc.order.getByOrderNumber.useQuery(
+  // 監聽用戶變化，同步數據
+  const { data: queriedOrder, isLoading: orderLoading, error: orderError } = trpc.order.getByOrderNumber.useQuery(
     { orderNumber: orderNumber || "" },
     { enabled: !!orderNumber && !userLoading }
   );
+
+  // 調試：打印錯誤信息
+  useEffect(() => {
+    if (orderError) {
+      console.error('Order query error:', orderError);
+    }
+  }, [orderError]);
 
   // 獲取訂單項目
   const { data: orderItems, refetch: refetchOrderItems } = trpc.orderItem.getByOrderId.useQuery(
@@ -58,53 +66,32 @@ export default function OrderDetail() {
     { enabled: !!order?.id }
   );
 
-  // 創建訂單項目 mutation
+  // 創建衣物編號的 mutation
   const createItemMutation = trpc.orderItem.create.useMutation({
     onSuccess: () => {
-      setItemCount(0);
       refetchOrderItems();
-    },
-    onError: (error) => {
-      console.error("Failed to create item:", error);
-      alert("創建衣物編號失敗，請重試");
+      setItemCount(0);
     },
   });
 
-  // 更新訂單項目 mutation
+  // 更新衣物備註的 mutation
   const updateItemMutation = trpc.orderItem.update.useMutation({
     onSuccess: () => {
-      setShowItemDialog(false);
+      refetchOrderItems();
       setEditingItemId(null);
       setEditingNotes("");
-      refetchOrderItems();
-    },
-    onError: (error) => {
-      console.error("Failed to update item:", error);
-      alert("更新衣物備註失敗，請重試");
     },
   });
 
-  // 刪除訂單項目 mutation
+  // 刪除衣物的 mutation
   const deleteItemMutation = trpc.orderItem.delete.useMutation({
     onSuccess: () => {
       refetchOrderItems();
     },
-    onError: (error) => {
-      console.error("Failed to delete item:", error);
-      alert("刪除衣物失敗，請重試");
-    },
   });
 
-  // 當訂單項目改變時，更新本地狀態
+  // 監聽訂單查詢結果
   useEffect(() => {
-    if (orderItems) {
-      setItems(orderItems);
-    }
-  }, [orderItems]);
-
-  // 當查詢到訂單時，更新狀態
-  useEffect(() => {
-    // 只要查詢完成（無論成功或失敗），就設置 isLoading = false
     if (!orderLoading) {
       if (queriedOrder) {
         setOrder(queriedOrder);
@@ -113,62 +100,76 @@ export default function OrderDetail() {
     }
   }, [queriedOrder, orderLoading]);
 
+  // 監聽訂單項目查詢結果
+  useEffect(() => {
+    if (orderItems) {
+      setItems(orderItems);
+    }
+  }, [orderItems]);
+
+  // 調試：打印路由參數
+  useEffect(() => {
+    console.log('OrderDetail mounted with orderNumber:', orderNumber);
+  }, [orderNumber]);
+
   // 生成衣物編號
   const generateItemNumbers = () => {
     if (!order || itemCount <= 0) return;
 
-    const baseNumber = order.orderNumber; // 例如: 260421-01
-    const existingCount = items.length; // 現有項目數
-
-    // 根據現有項目數續號
+    // 生成多個衣物編號
     for (let i = 1; i <= itemCount; i++) {
-      const itemNumber = `${baseNumber}-${String(existingCount + i).padStart(2, "0")}`; // 例如: 260421-01-01
-      createItemMutation.mutate({
-        orderId: order.id,
-        itemNumber,
-      });
+      const itemNumber = `${order.orderNumber}-${String(i).padStart(2, "0")}`;
+      createItemMutation.mutate({ orderId: order.id, itemNumber, notes: "" });
     }
   };
 
-  // 編輯項目備註
-  const handleEditItem = (item: OrderItem) => {
-    setEditingItemId(item.id);
-    setEditingNotes(item.notes || "");
-    setShowItemDialog(true);
-  };
-
-  // 保存項目備註
-  const handleSaveItem = () => {
-    if (editingItemId !== null) {
-      updateItemMutation.mutate({
-        itemId: editingItemId,
-        notes: editingNotes,
-      });
+  // 完成訂單
+  const handleCompleteOrder = () => {
+    if (!order) return;
+    
+    // 顯示確認彈出視窗
+    const confirmed = window.confirm(`確認該訂單（${order.orderNumber}）已完成？`);
+    if (confirmed) {
+      // TODO: 調用後端 API 完成訂單
+      console.log('Order completed:', order.orderNumber);
+      // 完成後導向首頁
+      setLocation("/");
     }
   };
 
-  // 刪除項目
-  const handleDeleteItem = (itemId: number) => {
-    if (confirm("確認要刪除此項目嗎？")) {
-      deleteItemMutation.mutate({ itemId });
-    }
-  };
-
-  if (isLoading || userLoading || orderLoading) {
+  // 如果還在加載，顯示載入狀態
+  if (isLoading || orderLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p>載入中...</p>
+        <div className="text-center">
+          <p className="text-lg mb-4">載入中...</p>
+          <p className="text-sm text-gray-500">請稍候，正在查詢訂單資訊</p>
+        </div>
       </div>
     );
   }
 
+  // 如果查不到訂單，顯示錯誤提示
   if (!order) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-lg mb-4">找不到訂單</p>
+          <p className="text-lg mb-2">找不到訂單</p>
+          <p className="text-sm text-gray-500 mb-6">訂單編號：{orderNumber}</p>
+          {orderError && (
+            <p className="text-sm text-red-500 mb-6">
+              錯誤：{(orderError as any)?.message || '查詢失敗，請重新整理'}
+            </p>
+          )}
           <Button onClick={() => setLocation("/")} variant="outline">
-            返回
+            返回首頁
+          </Button>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline" 
+            className="ml-2"
+          >
+            重新整理
           </Button>
         </div>
       </div>
@@ -223,7 +224,7 @@ export default function OrderDetail() {
 
         {/* 衣物編號列表 */}
         {items.length > 0 && (
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white border-gray-200 shadow-sm mb-8">
             <CardHeader>
               <CardTitle className="text-2xl text-gray-900">衣物清單</CardTitle>
             </CardHeader>
@@ -236,23 +237,26 @@ export default function OrderDetail() {
                   >
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">{item.itemNumber}</p>
-                      {item.notes && (
-                        <p className="text-sm text-gray-600 mt-1">備註：{item.notes}</p>
-                      )}
+                      <p className="text-sm text-gray-600">
+                        {item.notes || "無備註"}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => handleEditItem(item)}
-                        className="bg-blue-600 text-white hover:bg-blue-700"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingItemId(item.id);
+                          setEditingNotes(item.notes || "");
+                          setShowItemDialog(true);
+                        }}
                       >
                         備註
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => handleDeleteItem(item.id)}
                         variant="destructive"
-                        className="bg-red-600 text-white hover:bg-red-700"
+                        onClick={() => deleteItemMutation.mutate({ id: item.id })}
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -264,35 +268,46 @@ export default function OrderDetail() {
           </Card>
         )}
 
+        {/* 完成訂單按鈕 */}
+        <div className="flex gap-3 mt-8">
+          <Button
+            onClick={handleCompleteOrder}
+            className="bg-green-600 text-white hover:bg-green-700 px-8"
+          >
+            完成訂單
+          </Button>
+        </div>
+
         {/* 備註編輯對話框 */}
         <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>編輯衣物備註</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <Textarea
-                value={editingNotes}
-                onChange={(e) => setEditingNotes(e.target.value)}
-                placeholder="請輸入備註內容"
-                rows={4}
-              />
-            </div>
+            <Textarea
+              value={editingNotes}
+              onChange={(e) => setEditingNotes(e.target.value)}
+              placeholder="輸入備註..."
+              className="min-h-[100px]"
+            />
             <DialogFooter>
               <Button
-                type="button"
-                onClick={() => setShowItemDialog(false)}
                 variant="outline"
+                onClick={() => setShowItemDialog(false)}
               >
                 取消
               </Button>
               <Button
-                type="button"
-                onClick={handleSaveItem}
-                disabled={updateItemMutation.isPending}
-                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => {
+                  if (editingItemId) {
+                    updateItemMutation.mutate({
+                      id: editingItemId,
+                      notes: editingNotes,
+                    });
+                  }
+                }}
               >
-                {updateItemMutation.isPending ? "保存中..." : "保存"}
+                保存
               </Button>
             </DialogFooter>
           </DialogContent>
