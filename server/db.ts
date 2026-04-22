@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, lte, asc } from "drizzle-orm";
+import { eq, and, gte, lt, lte, asc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, customers, orders, schedules, InsertCustomer, InsertOrder, InsertSchedule } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -123,20 +123,25 @@ export async function createOrder(data: InsertOrder): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  // 生成當天遞增編號 (YYMMDD-序輯)
+  // 生成當天遞增編號 (YYMMDD-序號)
   const today = new Date();
   const year = String(today.getFullYear()).slice(-2);
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const date = String(today.getDate()).padStart(2, '0');
   const dateStr = `${year}${month}${date}`; // YYMMDD
   
-  // 查詢今天已有的訂單數
-  const todayOrders = await db.execute(`
-    SELECT COUNT(*) as count FROM orders 
-    WHERE DATE(createdAt) = CURDATE()
-  `);
+  // 查詢今天已有的訂單數 - 使用正確的 Drizzle 查詢方式
+  let count = 0;
+  try {
+    const result = await db.select({ count: sql`COUNT(*) as count` }).from(orders).where(
+      sql`DATE(${orders.createdAt}) = CURDATE()`
+    );
+    count = parseInt((result[0] as any)?.count || '0', 10);
+  } catch (error) {
+    console.warn('[Database] Failed to count today orders, using 0:', error);
+    count = 0;
+  }
   
-  const count = (todayOrders[0] as any[])[0]?.count || 0;
   const orderNumber = `${dateStr}-${String(count + 1).padStart(2, '0')}`;
   
   // 添加訂單編號到數據
