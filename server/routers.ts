@@ -227,6 +227,43 @@ export const appRouter = router({
         return await getOrderById(input.orderId);
       }),
 
+    getByOrderNumber: protectedProcedure
+      .input(z.object({ orderNumber: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Database connection failed',
+          });
+        }
+
+        const result = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.orderNumber, input.orderNumber))
+          .limit(1);
+
+        if (result.length === 0) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: '找不到訂單',
+          });
+        }
+
+        const order = result[0];
+
+        // 檢查權限：admin 可以看所有訂單，user 只能看自己的訂單
+        if (ctx.user.role === 'user' && order.customerId !== ctx.user.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: '無權存取此訂單',
+          });
+        }
+
+        return order;
+      }),
+
     getByDate: protectedProcedure
       .input(z.object({ date: z.string() }))
       .query(async ({ ctx, input }) => {

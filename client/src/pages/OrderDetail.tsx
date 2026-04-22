@@ -46,14 +46,11 @@ export default function OrderDetail() {
   const [editingNotes, setEditingNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // 獲取訂單信息
-  const { data: allOrders } = trpc.order.getAll.useQuery(undefined, {
-    enabled: user?.role === "admin",
-  });
-
-  const { data: myOrders } = trpc.order.getMyOrders.useQuery(undefined, {
-    enabled: user?.role === "user",
-  });
+  // 直接按訂單編號查詢訂單
+  const { data: queriedOrder, isLoading: orderLoading } = trpc.order.getByOrderNumber.useQuery(
+    { orderNumber: orderNumber || "" },
+    { enabled: !!orderNumber && !userLoading }
+  );
 
   // 獲取訂單項目
   const { data: orderItems, refetch: refetchOrderItems } = trpc.orderItem.getByOrderId.useQuery(
@@ -105,24 +102,15 @@ export default function OrderDetail() {
     }
   }, [orderItems]);
 
-  // 初始化頁面 - 查找訂單
+  // 當查詢到訂單時，更新狀態
   useEffect(() => {
-    if (userLoading) return;
-
-    let foundOrder = null;
-
-    if (user?.role === "admin" && allOrders) {
-      foundOrder = allOrders.find((o: any) => o.orderNumber === orderNumber);
-    } else if (user?.role === "user" && myOrders) {
-      foundOrder = myOrders.find((o: any) => o.orderNumber === orderNumber);
+    if (queriedOrder) {
+      setOrder(queriedOrder);
+      setIsLoading(false);
+    } else if (!orderLoading && orderNumber) {
+      setIsLoading(false);
     }
-
-    if (foundOrder) {
-      setOrder(foundOrder);
-    }
-
-    setIsLoading(false);
-  }, [orderNumber, user, allOrders, myOrders, userLoading]);
+  }, [queriedOrder, orderLoading, orderNumber]);
 
   // 生成衣物編號
   const generateItemNumbers = () => {
@@ -165,7 +153,7 @@ export default function OrderDetail() {
     }
   };
 
-  if (isLoading || userLoading) {
+  if (isLoading || userLoading || orderLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p>載入中...</p>
@@ -198,146 +186,117 @@ export default function OrderDetail() {
           ← 返回
         </Button>
 
-        {/* 訂單信息卡片 */}
-        <Card className="mb-6">
+        {/* 訂單標題 */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            您的訂單編號為：{order.orderNumber}
+          </h1>
+          <p className="text-gray-600">管理您的衣物編號和備註</p>
+        </div>
+
+        {/* 衣物編號輸入區 */}
+        <Card className="bg-white border-gray-200 shadow-sm mb-8">
           <CardHeader>
-            <CardTitle className="text-2xl">訂單詳細 - {order.orderNumber}</CardTitle>
+            <CardTitle className="text-2xl text-gray-900">衣物編號(件數)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">訂單編號</p>
-                <p className="text-lg font-semibold">{order.orderNumber}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">袋數</p>
-                <p className="text-lg font-semibold">{order.bagCount}</p>
-              </div>
-              {order.notes && (
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-600">備註</p>
-                  <p className="text-sm">{order.notes}</p>
-                </div>
-              )}
+            <div className="flex gap-3">
+              <Input
+                type="number"
+                min="1"
+                value={itemCount}
+                onChange={(e) => setItemCount(parseInt(e.target.value) || 0)}
+                placeholder="請輸入件數"
+                className="flex-1"
+              />
+              <Button
+                onClick={generateItemNumbers}
+                disabled={itemCount <= 0 || createItemMutation.isPending}
+                className="bg-blue-600 text-white hover:bg-blue-700 px-6"
+              >
+                {createItemMutation.isPending ? "生成中..." : "輸入"}
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* 衣物管理卡片 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>衣物管理</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* 生成衣物編號區塊 */}
-            <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-              <h3 className="text-sm font-semibold mb-3">生成衣物編號</h3>
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <label className="text-sm text-gray-600">衣物件數</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="99"
-                    value={itemCount}
-                    onChange={(e) => setItemCount(parseInt(e.target.value) || 0)}
-                    placeholder="輸入件數"
-                  />
-                </div>
-                <Button
-                  onClick={generateItemNumbers}
-                  disabled={itemCount <= 0 || createItemMutation.isPending}
-                >
-                  {createItemMutation.isPending ? "生成中..." : "生成編號"}
-                </Button>
-              </div>
-            </div>
-
-            {/* 衣物列表 */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold mb-3">衣物列表</h3>
-              {items && items.length > 0 ? (
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 bg-white border rounded-lg hover:bg-gray-50"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{item.itemNumber}</p>
-                        {item.notes && (
-                          <p className="text-sm text-gray-600">{item.notes}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditItem(item)}
-                        >
-                          編輯
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteItem(item.id)}
-                          disabled={deleteItemMutation.isPending}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
+        {/* 衣物編號列表 */}
+        {items.length > 0 && (
+          <Card className="bg-white border-gray-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl text-gray-900">衣物清單</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{item.itemNumber}</p>
+                      {item.notes && (
+                        <p className="text-sm text-gray-600 mt-1">備註：{item.notes}</p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-gray-500 py-4">
-                  尚未添加衣物，請先輸入件數並生成編號
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleEditItem(item)}
+                        className="bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        備註
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleDeleteItem(item.id)}
+                        variant="destructive"
+                        className="bg-red-600 text-white hover:bg-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* 編輯項目備註對話框 */}
-      <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>編輯衣物備註</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-semibold mb-2">衣物編號</p>
-              <p className="text-sm text-gray-600">
-                {items.find((i) => i.id === editingItemId)?.itemNumber}
-              </p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold">備註</label>
+        {/* 備註編輯對話框 */}
+        <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>編輯衣物備註</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
               <Textarea
                 value={editingNotes}
                 onChange={(e) => setEditingNotes(e.target.value)}
-                placeholder="輸入衣物備註（如：特殊處理、損傷等）"
+                placeholder="請輸入備註內容"
                 rows={4}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowItemDialog(false)}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleSaveItem}
-              disabled={updateItemMutation.isPending}
-            >
-              {updateItemMutation.isPending ? "保存中..." : "保存"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button
+                type="button"
+                onClick={() => setShowItemDialog(false)}
+                variant="outline"
+              >
+                取消
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveItem}
+                disabled={updateItemMutation.isPending}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {updateItemMutation.isPending ? "保存中..." : "保存"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
