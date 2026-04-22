@@ -11,13 +11,13 @@ export default function CustomerNewOrder() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // 區塊一：會員資料狀態
+  // 一：會元資料狀態
   const [useUserInfo, setUseUserInfo] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
 
-  // 區塊二：訂單資訊狀態
+  // 二：訂單資訊狀態
   const [bagCount, setBagCount] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -30,8 +30,8 @@ export default function CustomerNewOrder() {
   // 創建訂單 mutation
   const createOrderMutation = trpc.order.create.useMutation({
     onSuccess: () => {
-      // 重定向到首頁
-      setLocation("/customer/home");
+      // 重定向到歷史訂單頁面
+      setLocation("/customer/history");
     },
     onError: (error) => {
       alert(`建立訂單失敗: ${error.message}`);
@@ -104,10 +104,10 @@ export default function CustomerNewOrder() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 區塊一：會員資料 */}
+          {/* 一：會元資料 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">區塊一：會員資料</CardTitle>
+              <CardTitle className="text-2xl text-gray-900">一</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 自動填入勾選框 */}
@@ -168,10 +168,10 @@ export default function CustomerNewOrder() {
             </CardContent>
           </Card>
 
-          {/* 區塊二：訂單資訊 */}
+          {/* 二：訂單資訊 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">區塊二：訂單資訊</CardTitle>
+              <CardTitle className="text-2xl text-gray-900">二</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 袋數 */}

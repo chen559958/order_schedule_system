@@ -59,14 +59,7 @@ export default function CustomerHome() {
   };
 
   const getProgressIcon = (progress: string) => {
-    const icons: Record<string, string> = {
-      pending: "⏳",
-      received: "✓",
-      washing: "🔄",
-      returning: "→",
-      completed: "✓",
-    };
-    return icons[progress] || "•";
+    return "";
   };
 
   return (
@@ -74,10 +67,10 @@ export default function CustomerHome() {
       <div className="space-y-8">
         {/* 歡迎語 - 大字顯示 */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             歡迎，{user?.name || "使用者"}
           </h1>
-          <p className="text-gray-600 text-lg">查看您的訂單狀態和進度</p>
+          <p className="text-gray-600 text-xl">查看您的訂單狀態和進度</p>
         </div>
 
         {/* 當前訂單列表 */}
@@ -107,16 +100,10 @@ export default function CustomerHome() {
                       key={order.id}
                       className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="mb-3">
                         <div>
                           <p className="text-sm font-medium text-gray-500">訂單編號</p>
-                          <p className="text-lg font-bold text-gray-900">{orderNumber}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500 mb-1">進度</p>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${progressColor}`}>
-                            {getProgressIcon(progress)} {progressLabel}
-                          </span>
+                          <p className="text-2xl font-bold text-gray-900">{orderNumber}</p>
                         </div>
                       </div>
 
@@ -132,14 +119,14 @@ export default function CustomerHome() {
                       </div>
 
                       {/* 進度詳情 */}
-                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800">
+                      <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-base text-blue-800">
                           <span className="font-semibold">當前進度：</span>
-                          {progress === "completed" && "✓ 已完成"}
-                          {progress === "returning" && "→ 準備送回"}
-                          {progress === "washing" && "🔄 清洗中"}
-                          {progress === "received" && "✓ 已收件"}
-                          {progress === "pending" && "⏳ 尚未收件"}
+                          {progress === "completed" && "已完成"}
+                          {progress === "returning" && "準備送回"}
+                          {progress === "washing" && "清洗中"}
+                          {progress === "received" && "已收件"}
+                          {progress === "pending" && "尚未收件"}
                         </p>
                       </div>
 
