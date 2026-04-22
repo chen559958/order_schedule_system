@@ -104,13 +104,14 @@ export default function OrderDetail() {
 
   // 當查詢到訂單時，更新狀態
   useEffect(() => {
-    if (queriedOrder) {
-      setOrder(queriedOrder);
-      setIsLoading(false);
-    } else if (!orderLoading && orderNumber) {
+    // 只要查詢完成（無論成功或失敗），就設置 isLoading = false
+    if (!orderLoading) {
+      if (queriedOrder) {
+        setOrder(queriedOrder);
+      }
       setIsLoading(false);
     }
-  }, [queriedOrder, orderLoading, orderNumber]);
+  }, [queriedOrder, orderLoading]);
 
   // 生成衣物編號
   const generateItemNumbers = () => {
