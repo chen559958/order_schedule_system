@@ -1,11 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import Pagination from "@/components/Pagination";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function CustomerHistory() {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
 
   // 獲取當前用戶的訂單
   const { data: myOrders = [], isLoading } = trpc.order.getMyOrders.useQuery();
@@ -17,6 +21,18 @@ export default function CustomerHistory() {
       return order.orderStatus === "completed";
     });
   }, [myOrders]);
+
+  // 計算分頁數據
+  const totalPages = Math.ceil(historyOrders.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedOrders = historyOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // 重置頁碼當訂單數量變化
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages]);
 
   const getDeliveryLabel = (deliveryType: string) => {
     const labels: Record<string, string> = {
@@ -76,8 +92,9 @@ export default function CustomerHistory() {
                 <p className="text-sm mt-2">完成的訂單將顯示在此</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {historyOrders.map((order: any) => (
+              <>
+                <div className="space-y-4">
+                  {paginatedOrders.map((order: any) => (
                   <div
                     key={order.id}
                     className="border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:bg-blue-50 transition"
@@ -142,7 +159,14 @@ export default function CustomerHistory() {
                     )}
                   </div>
                 ))}
-              </div>
+                </div>
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>

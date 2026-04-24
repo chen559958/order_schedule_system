@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import Pagination from "@/components/Pagination";
 
 const PROGRESS_LABELS: Record<string, string> = {
   pending: "尚未收件",
@@ -20,8 +21,11 @@ const PROGRESS_COLORS: Record<string, string> = {
   completed: "bg-green-100 text-green-800",
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function CustomerHome() {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
 
   // 獲取當前用戶的訂單
   const { data: myOrders = [], isLoading } = trpc.order.getMyOrders.useQuery();
@@ -33,6 +37,18 @@ export default function CustomerHome() {
       return order.orderStatus === "pending" || order.orderStatus === "scheduled";
     });
   }, [myOrders]);
+
+  // 計算分頁數據
+  const totalPages = Math.ceil(pendingOrders.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedOrders = pendingOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // 重置頁碼當訂單數量變化
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages]);
 
   // 直接使用資料庫中的 orderNumber
   const getOrderNumber = (order: any): string => {
@@ -89,8 +105,9 @@ export default function CustomerHome() {
                 <p className="text-sm mt-2">點擊側邊欄「新增訂單」建立新訂單</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {pendingOrders.map((order: any) => {
+              <>
+                <div className="space-y-4">
+                  {paginatedOrders.map((order: any) => {
                   const orderNumber = getOrderNumber(order);
                   const progress = order.progress || "pending";
                   const progressLabel = PROGRESS_LABELS[progress] || "尚未收件";
@@ -147,7 +164,14 @@ export default function CustomerHome() {
                     </div>
                   );
                 })}
-              </div>
+                </div>
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>
