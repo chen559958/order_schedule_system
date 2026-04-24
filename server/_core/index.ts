@@ -36,6 +36,45 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   
+  // 照相上傳端點
+  app.post("/api/upload-photo", async (req, res) => {
+    try {
+      const { storagePut } = await import('../storage');
+      const multer = await import('multer');
+      const upload = multer.default({ storage: multer.default.memoryStorage() });
+      
+      // 使用 multer 中間件解析 multipart/form-data
+      upload.single('file')(req, res, async (err) => {
+        if (err) {
+          return res.status(400).json({ error: '檔案上傳失敗' });
+        }
+        
+        const file = (req as any).file;
+        if (!file) {
+          return res.status(400).json({ error: '沒有檔案' });
+        }
+        
+        try {
+          // 生成唯一的檔案名稱
+          const timestamp = Date.now();
+          const random = Math.random().toString(36).substring(7);
+          const fileKey = `photos/${timestamp}-${random}-${file.originalname}`;
+          
+          // 上傳到 S3
+          const { url } = await storagePut(fileKey, file.buffer, file.mimetype);
+          
+          res.json({ url, success: true });
+        } catch (uploadError: any) {
+          console.error('S3 upload error:', uploadError);
+          res.status(500).json({ error: '上傳到雲端失敗', details: uploadError.message });
+        }
+      });
+    } catch (error: any) {
+      console.error('Upload endpoint error:', error);
+      res.status(500).json({ error: error.message || '上傳失敗' });
+    }
+  });
+  
   // 原生登入和註冊 API 端點
   app.post("/api/auth/login", async (req, res) => {
     try {

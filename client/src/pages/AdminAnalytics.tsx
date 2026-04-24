@@ -7,12 +7,13 @@ export default function AdminAnalytics() {
   // 獲取所有訂單
   const { data: allOrders = [], isLoading } = trpc.order.getAll.useQuery();
 
-  // 計算月份統計
+  // 計算月份統計（只統計已完成的訂單）
   const monthlyStats = useMemo(() => {
     const stats: Record<string, { revenue: number; orderCount: number; bagCount: number }> = {};
 
     allOrders.forEach((order: any) => {
-      if (!order.createdAt) return;
+      // 只統計已完成的訂單（progress === 'completed'）
+      if (!order.createdAt || order.progress !== 'completed') return;
       
       // 提取月份（YYYY-MM）
       const dateStr = order.createdAt.split(' ')[0] || order.createdAt.split('T')[0];

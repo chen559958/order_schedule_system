@@ -43,6 +43,10 @@ export default function AdminDashboard() {
   // 獲取待處理訂單
   const { data: pendingOrdersData, isLoading: ordersLoading, refetch } = trpc.order.getPending.useQuery();
 
+  // 獲取當日排程
+  const { data: todaySchedules, isLoading: schedulesLoading } = trpc.schedule.getTodaySchedules.useQuery();
+  const { data: allOrders } = trpc.order.getAll.useQuery();
+
   // 完成訂單的 mutation
   const completeOrderMutation = trpc.schedule.completeOrder.useMutation({
     onSuccess: (_, variables) => {
@@ -196,6 +200,67 @@ export default function AdminDashboard() {
             className="w-full px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-lg placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />
         </div>
+
+        {/* 當日排程 */}
+        {todaySchedules && todaySchedules.length > 0 && (
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">當日排程</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* 到府收送 */}
+                {todaySchedules
+                  .filter((s: any) => !s.isCompleted && (s.deliveryType === 'pickup' || s.deliveryType === 'delivery'))
+                  .sort((a: any, b: any) => (a.deliveryTime || '').localeCompare(b.deliveryTime || ''))
+                  .map((schedule: any) => {
+                    const order = allOrders?.find((o: any) => o.id === schedule.orderId);
+                    return (
+                      <div key={schedule.id} className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <p className="text-white font-semibold">{order?.customerName || '未知客戶'}</p>
+                            <p className="text-gray-400 text-sm">{order?.customerPhone || '無電話'}</p>
+                            <p className="text-gray-400 text-sm">{order?.customerAddress || '無地址'}</p>
+                            <p className="text-gray-500 text-xs mt-2">
+                              {schedule.deliveryType === 'pickup' ? '到府收件' : '到府送回'}
+                              {schedule.deliveryTime && ` - ${schedule.deliveryTime}`}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-blue-400 font-semibold">{order?.bagCount || 0} 袋</p>
+                            <p className="text-gray-400 text-sm">{order?.paymentStatus === 'paid' ? '已付款' : '未付款'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {/* 自行送件 */}
+                {todaySchedules
+                  .filter((s: any) => !s.isCompleted && s.deliveryType === 'self')
+                  .sort((a: any, b: any) => (a.deliveryTime || '').localeCompare(b.deliveryTime || ''))
+                  .map((schedule: any) => {
+                    const order = allOrders?.find((o: any) => o.id === schedule.orderId);
+                    return (
+                      <div key={schedule.id} className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <p className="text-white font-semibold">{order?.customerName || '未知客戶'}</p>
+                            <p className="text-gray-400 text-sm">{order?.customerPhone || '無電話'}</p>
+                            <p className="text-gray-500 text-xs mt-2">自行送件{schedule.deliveryTime && ` - ${schedule.deliveryTime}`}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-blue-400 font-semibold">{order?.bagCount || 0} 袋</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* 待處理訂單 */}
         <Card className="bg-gray-900 border-gray-700">

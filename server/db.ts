@@ -237,7 +237,8 @@ export async function getAllOrders() {
       customerAddress: customers.address,
     })
     .from(orders)
-    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .leftJoin(users, eq(orders.customerId, users.id))
+    .leftJoin(customers, eq(users.id, customers.userId))
     .orderBy(asc(orders.createdAt));
 }
 
