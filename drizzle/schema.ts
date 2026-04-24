@@ -78,6 +78,7 @@ export const orderItems = mysqlTable("orderItems", {
 	orderId: int().notNull(),
 	itemNumber: varchar({ length: 50 }).notNull(), // 格式: 訂單編號-01, 訂單編號-02 等
 	notes: text(), // 衣物備註
+	photoUrl: text(), // S3 相片 URL
 	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
 	},

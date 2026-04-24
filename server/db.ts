@@ -420,14 +420,16 @@ export async function createOrderItem(orderId: number, itemNumber: string, notes
   return result;
 }
 
-export async function updateOrderItem(itemId: number, notes?: string) {
+export async function updateOrderItem(itemId: number, notes?: string, photoUrl?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   const { orderItems } = await import("../drizzle/schema");
-  await db.update(orderItems).set({
-    notes: notes || null,
-  }).where(eq(orderItems.id, itemId));
+  const updateData: any = {};
+  if (notes !== undefined) updateData.notes = notes || null;
+  if (photoUrl !== undefined) updateData.photoUrl = photoUrl || null;
+  
+  await db.update(orderItems).set(updateData).where(eq(orderItems.id, itemId));
 }
 
 export async function deleteOrderItem(itemId: number) {

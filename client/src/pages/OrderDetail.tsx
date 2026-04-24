@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface OrderItem {
   id: number;
   orderId: number;
   itemNumber: string;
   notes: string | null;
+  photoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +49,9 @@ export default function OrderDetail() {
   const [editingNotes, setEditingNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [photoItemId, setPhotoItemId] = useState<number | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 監聽用戶變化，同步數據
   const { data: queriedOrder, isLoading: orderLoading, error: orderError } = trpc.order.getByOrderNumber.useQuery(
@@ -102,17 +106,12 @@ export default function OrderDetail() {
     }
   }, [queriedOrder, orderLoading]);
 
-  // 監聽訂單項目查詢結果
+  // 監聽訂單項目
   useEffect(() => {
     if (orderItems) {
       setItems(orderItems);
     }
   }, [orderItems]);
-
-  // 調試：打印路由參數
-  useEffect(() => {
-    console.log('OrderDetail mounted with orderNumber:', orderNumber);
-  }, [orderNumber]);
 
   // 生成衣物編號
   const generateItemNumbers = () => {
@@ -136,6 +135,49 @@ export default function OrderDetail() {
       console.log('Order completed:', order.orderNumber);
       // 完成後導向首頁
       setLocation("/");
+    }
+  };
+
+  // 拍照功能
+  const handleTakePhoto = (itemId: number) => {
+    setPhotoItemId(itemId);
+    fileInputRef.current?.click();
+  };
+
+  // 處理照片上傳
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !photoItemId) return;
+
+    try {
+      setIsUploadingPhoto(true);
+      
+      // 上傳照片到 S3（需要後端實現 /api/upload-photo）
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload-photo', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      const photoUrl = data.url;
+      
+      // 更新衣物的 photoUrl
+      updateItemMutation.mutate({
+        itemId: photoItemId,
+        photoUrl: photoUrl,
+      });
+      
+      setPhotoItemId(null);
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      alert('照片上傳失敗，請重試');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -242,8 +284,19 @@ export default function OrderDetail() {
                       <p className="text-sm text-gray-600">
                         {item.notes || "無備註"}
                       </p>
+                      {item.photoUrl && (
+                        <img src={item.photoUrl} alt="衣物照片" className="mt-2 h-12 w-12 rounded object-cover" />
+                      )}
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTakePhoto(item.id)}
+                        disabled={isUploadingPhoto}
+                      >
+                        {isUploadingPhoto && photoItemId === item.id ? "上傳中..." : "拍照"}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -258,7 +311,7 @@ export default function OrderDetail() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => deleteItemMutation.mutate({ id: item.id })}
+                        onClick={() => deleteItemMutation.mutate({ itemId: item.id })}
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -303,7 +356,7 @@ export default function OrderDetail() {
                 onClick={() => {
                   if (editingItemId) {
                     updateItemMutation.mutate({
-                      id: editingItemId,
+                      itemId: editingItemId,
                       notes: editingNotes,
                     });
                   }
@@ -314,6 +367,15 @@ export default function OrderDetail() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* 隱藏的文件輸入框 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          style={{ display: 'none' }}
+        />
       </div>
     </div>
   );
