@@ -14,7 +14,7 @@ export default function CustomerHistory() {
   const historyOrders = useMemo(() => {
     return myOrders.filter((order: any) => {
       // 篩選出已完成的訂單
-      return order.status === "completed";
+      return order.orderStatus === "completed";
     });
   }, [myOrders]);
 

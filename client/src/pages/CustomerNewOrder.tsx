@@ -11,7 +11,7 @@ export default function CustomerNewOrder() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // 一：會元資料狀態
+  // 一：會員資料狀態
   const [useUserInfo, setUseUserInfo] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -104,10 +104,10 @@ export default function CustomerNewOrder() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 一、會元資料 */}
+          {/* 一、會員資料 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">一、會元資料</CardTitle>
+              <CardTitle className="text-2xl text-gray-900">一、會員資料</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 自動填入勾選框 */}
