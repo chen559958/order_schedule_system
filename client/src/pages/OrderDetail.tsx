@@ -120,7 +120,20 @@ export default function OrderDetail() {
 
   // 生成衣物編號
   const generateItemNumbers = () => {
-    if (!order || itemCount <= 0) return;
+    if (!order || itemCount <= 0) {
+      setErrorMessage("請先選擇訂單並輸入件數");
+      return;
+    }
+
+    if (!order.orderNumber) {
+      setErrorMessage("訂單編號不存在，請重新加載頁面");
+      return;
+    }
+
+    if (!order.id) {
+      setErrorMessage("訂單 ID 不存在，請重新加載頁面");
+      return;
+    }
 
     // 生成多個衣物編號
     for (let i = 1; i <= itemCount; i++) {
