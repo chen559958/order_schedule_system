@@ -409,13 +409,18 @@ export async function getOrderItems(orderId: number) {
       oi.itemNumber,
       oi.notes,
       oi.photoUrl,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id', oip.id,
-          'itemId', oip.itemId,
-          'photoUrl', oip.photoUrl,
-          'createdAt', oip.createdAt
-        )
+      COALESCE(
+        JSON_ARRAYAGG(
+          CASE 
+            WHEN oip.id IS NOT NULL THEN JSON_OBJECT(
+              'id', oip.id,
+              'itemId', oip.itemId,
+              'photoUrl', oip.photoUrl,
+              'createdAt', oip.createdAt
+            )
+          END
+        ),
+        JSON_ARRAY()
       ) as photos
     FROM orderItems oi
     LEFT JOIN orderItemPhotos oip ON oip.itemId = oi.id
