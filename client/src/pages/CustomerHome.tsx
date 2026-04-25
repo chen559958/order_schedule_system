@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import CustomerLayout from "@/components/CustomerLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import Pagination from "@/components/Pagination";
@@ -25,6 +27,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function CustomerHome() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [currentPage, setCurrentPage] = useState(1);
 
   // 獲取當前用戶的訂單
@@ -76,6 +79,12 @@ export default function CustomerHome() {
 
   const getProgressIcon = (progress: string) => {
     return "";
+  };
+
+  // 檢查是否應該顯示「衣物概況」按鈕
+  const shouldShowClothingOverview = (progress: string) => {
+    const showableStatuses = ["received", "washing", "returning", "completed"];
+    return showableStatuses.includes(progress);
   };
 
   return (
@@ -159,6 +168,18 @@ export default function CustomerHome() {
                       {order.notes && (
                         <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                           <p className="text-sm text-gray-600">備註：{order.notes}</p>
+                        </div>
+                      )}
+
+                      {/* 衣物概況按鈕 */}
+                      {shouldShowClothingOverview(progress) && (
+                        <div className="mt-4">
+                          <Button
+                            onClick={() => setLocation(`/customer/order/${order.id}/overview`)}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            衣物概況
+                          </Button>
                         </div>
                       )}
                     </div>
