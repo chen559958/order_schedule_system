@@ -409,18 +409,15 @@ export async function getOrderItems(orderId: number) {
       oi.itemNumber,
       oi.notes,
       oi.photoUrl,
-      COALESCE(
-        JSON_ARRAYAGG(
-          CASE 
-            WHEN oip.id IS NOT NULL THEN JSON_OBJECT(
-              'id', oip.id,
-              'itemId', oip.itemId,
-              'photoUrl', oip.photoUrl,
-              'createdAt', oip.createdAt
-            )
-          END
-        ),
-        JSON_ARRAY()
+      JSON_ARRAYAGG(
+        CASE 
+          WHEN oip.id IS NOT NULL THEN JSON_OBJECT(
+            'id', oip.id,
+            'itemId', oip.itemId,
+            'photoUrl', oip.photoUrl,
+            'createdAt', oip.createdAt
+          )
+        END
       ) as photos
     FROM orderItems oi
     LEFT JOIN orderItemPhotos oip ON oip.itemId = oi.id
@@ -429,7 +426,14 @@ export async function getOrderItems(orderId: number) {
     ORDER BY oi.id
   `, [orderId]);
   
-  return result as any[];
+  // 清理照片數組，移除 NULL 值
+  return (result as any[]).map((item: any) => ({
+    ...item,
+    photos: item.photos
+      ? (typeof item.photos === 'string' ? JSON.parse(item.photos) : item.photos)
+          .filter((p: any) => p && p.id !== null)
+      : []
+  }));
 }
 
 export async function createOrderItem(orderId: number, itemNumber: string, notes?: string) {
