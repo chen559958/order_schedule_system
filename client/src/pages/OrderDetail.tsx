@@ -62,10 +62,20 @@ export default function OrderDetail() {
   );
 
   // 2. 根據訂單 ID 查詢訂單項目
-  const { data: orderItems, refetch: refetchOrderItems } = trpc.orderItem.getByOrderId.useQuery(
+  useEffect(() => {
+    console.log('[DEBUG] queriedOrder changed:', queriedOrder);
+  }, [queriedOrder]);
+
+  const { data: orderItems, refetch: refetchOrderItems, error: itemsError } = trpc.orderItem.getByOrderId.useQuery(
     { orderId: queriedOrder?.id || 0 },
     { enabled: !!queriedOrder?.id }
   );
+
+  useEffect(() => {
+    if (itemsError) {
+      console.error('[ERROR] orderItems query error:', itemsError);
+    }
+  }, [itemsError]);
 
   // 獲取多張照片
   const getPhotosQuery = (itemId: number) => {
@@ -129,6 +139,7 @@ export default function OrderDetail() {
 
   // 監聽訂單項目
   useEffect(() => {
+    console.log('[DEBUG] orderItems changed:', orderItems);
     if (orderItems) {
       // 按 itemNumber 排序
       const sortedItems = [...orderItems].sort((a, b) => {

@@ -397,17 +397,24 @@ export async function updateCustomer(customerId: number, data: Partial<Omit<Inse
 // OrderItems 相關函數
 export async function getOrderItems(orderId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) {
+    console.error('[ERROR] Database connection failed');
+    return [];
+  }
   
-  const { orderItems } = await import("../drizzle/schema");
+  console.log('[DEBUG] getOrderItems called with orderId:', orderId);
   
-  // 粗简查詢: 先查詢 orderItems
-  const result = await db.execute(
-    `SELECT id, orderId, itemNumber, notes, photoUrl FROM orderItems WHERE orderId = ? ORDER BY id`,
-    [orderId]
-  );
-  
-  return result as any[];
+  try {
+    const result = await db.execute(
+      `SELECT id, orderId, itemNumber, notes, photoUrl FROM orderItems WHERE orderId = ? ORDER BY id`,
+      [orderId]
+    );
+    console.log('[DEBUG] Query result count:', (result as any[]).length);
+    return result as any[];
+  } catch (error: any) {
+    console.error('[ERROR] getOrderItems query failed:', error.message);
+    throw error;
+  }
 }
 
 export async function createOrderItem(orderId: number, itemNumber: string, notes?: string) {
