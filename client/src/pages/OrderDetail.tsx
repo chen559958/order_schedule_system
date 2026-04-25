@@ -202,16 +202,22 @@ export default function OrderDetail() {
     }
 
     try {
+      // 順序生成衣物編號，確保不會重複
       for (let i = 1; i <= itemCount; i++) {
         const itemNumber = `${order.orderNumber}-${String(i).padStart(2, '0')}`;
+        console.log(`[DEBUG] Creating item: ${itemNumber}`);
         await createItemMutation.mutateAsync({
           orderId: order.id,
           itemNumber,
         });
+        // 等待 mutation 完成後再繼續下一個
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       setShowItemDialog(false);
+      setItemCount(0);
     } catch (error) {
       console.error('生成衣物編號失敗:', error);
+      setErrorMessage(`生成失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
     }
   };
 
@@ -292,8 +298,9 @@ export default function OrderDetail() {
                         size="sm"
                         variant="destructive"
                         onClick={() => deleteItemMutation.mutate({ itemId: item.id })}
+                        disabled={deleteItemMutation.isPending}
                       >
-                        刪除
+                        {deleteItemMutation.isPending ? '刪除中...' : '刪除'}
                       </Button>
                     </div>
                   </div>
