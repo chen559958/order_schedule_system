@@ -405,11 +405,16 @@ export async function getOrderItems(orderId: number) {
   console.log('[DEBUG] getOrderItems called with orderId:', orderId);
   
   try {
-    const result = await db.execute(
-      `SELECT id, orderId, itemNumber, notes, photoUrl FROM orderItems WHERE orderId = ? ORDER BY id`,
-      [orderId]
-    );
-    console.log('[DEBUG] Query result count:', (result as any[]).length);
+    const { orderItems } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const result = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId))
+      .orderBy(orderItems.id);
+    
+    console.log('[DEBUG] Query result count:', result.length);
     return result as any[];
   } catch (error: any) {
     console.error('[ERROR] getOrderItems query failed:', error.message);

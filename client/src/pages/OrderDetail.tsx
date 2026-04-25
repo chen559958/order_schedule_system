@@ -64,18 +64,25 @@ export default function OrderDetail() {
   // 2. 根據訂單 ID 查詢訂單項目
   useEffect(() => {
     console.log('[DEBUG] queriedOrder changed:', queriedOrder);
+    if (queriedOrder?.id) {
+      console.log('[DEBUG] queriedOrder.id is:', queriedOrder.id, 'type:', typeof queriedOrder.id);
+    }
   }, [queriedOrder]);
 
-  const { data: orderItems, refetch: refetchOrderItems, error: itemsError } = trpc.orderItem.getByOrderId.useQuery(
-    { orderId: queriedOrder?.id || 0 },
-    { enabled: !!queriedOrder?.id }
+  const orderId = queriedOrder?.id;
+  console.log('[DEBUG] orderId for query:', orderId, 'enabled:', !!orderId);
+
+  const { data: orderItems, refetch: refetchOrderItems, error: itemsError, isLoading: itemsLoading } = trpc.orderItem.getByOrderId.useQuery(
+    { orderId: orderId || 0 },
+    { enabled: !!orderId && orderId > 0 }
   );
 
   useEffect(() => {
+    console.log('[DEBUG] orderItems query result:', { orderItems, itemsError, itemsLoading });
     if (itemsError) {
       console.error('[ERROR] orderItems query error:', itemsError);
     }
-  }, [itemsError]);
+  }, [itemsError, orderItems, itemsLoading]);
 
   // 獲取多張照片
   const getPhotosQuery = (itemId: number) => {
