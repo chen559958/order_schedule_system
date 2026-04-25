@@ -400,11 +400,31 @@ export async function getOrderItems(orderId: number) {
   if (!db) return [];
   
   const { orderItems } = await import("../drizzle/schema");
-  return await db
-    .select()
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderId))
-    .orderBy(orderItems.id);
+  
+  // 使用 SQL 查詢 orderItems 及其照片
+  const result = await db.execute(`
+    SELECT 
+      oi.id,
+      oi.orderId,
+      oi.itemNumber,
+      oi.notes,
+      oi.photoUrl,
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', oip.id,
+          'itemId', oip.itemId,
+          'photoUrl', oip.photoUrl,
+          'createdAt', oip.createdAt
+        )
+      ) as photos
+    FROM orderItems oi
+    LEFT JOIN orderItemPhotos oip ON oi.id = oip.itemId
+    WHERE oi.orderId = ?
+    GROUP BY oi.id
+    ORDER BY oi.id
+  `, [orderId]);
+  
+  return result as any[];
 }
 
 export async function createOrderItem(orderId: number, itemNumber: string, notes?: string) {

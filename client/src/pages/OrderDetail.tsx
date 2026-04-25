@@ -114,17 +114,16 @@ export default function OrderDetail() {
   // 添加照片的 mutation
   const addPhotoMutation = trpc.orderItem.addPhoto.useMutation({
     onSuccess: () => {
-      // 重新獲取照片列表
-      if (photoItemId) {
-        // 觸發照片重新加載
-      }
+      // 重新查詢訂單以獲取最新照片
+      queryOrder.refetch();
     },
   });
 
   // 刪除照片的 mutation
   const deletePhotoMutation = trpc.orderItem.deletePhoto.useMutation({
     onSuccess: () => {
-      // 照片已刪除，重新加載列表
+      // 重新查詢訂單以獲取最新照片
+      queryOrder.refetch();
     },
   });
 
@@ -141,34 +140,22 @@ export default function OrderDetail() {
   // 監聽訂單項目
   useEffect(() => {
     if (orderItems) {
-      // 按 itemNumber 排序（例如：260424-02-01, 260424-02-02...）
+      // 按 itemNumber 排序
       const sortedItems = [...orderItems].sort((a, b) => {
-        // 提取最後的序號部分進行數值比較
         const aNum = parseInt(a.itemNumber.split('-').pop() || '0');
         const bNum = parseInt(b.itemNumber.split('-').pop() || '0');
         return aNum - bNum;
       });
       setItems(sortedItems);
       
-      // 為每個 item 加載照片
+      // 從後端數據中提取照片
+      const photosMap: Record<number, any[]> = {};
       sortedItems.forEach(item => {
-        loadPhotosForItem(item.id);
+        photosMap[item.id] = (item as any).photos?.filter((p: any) => p.id !== null) || [];
       });
+      setItemPhotos(photosMap);
     }
   }, [orderItems]);
-
-  // 加載單個 item 的照片
-  const loadPhotosForItem = async (itemId: number) => {
-    try {
-      const photos = await trpc.orderItem.getPhotos.fetch({ itemId });
-      setItemPhotos(prev => ({
-        ...prev,
-        [itemId]: photos || []
-      }));
-    } catch (error) {
-      console.error('Failed to load photos for item:', itemId, error);
-    }
-  };
 
   // 拍照功能
   const handleTakePhoto = (itemId: number) => {
