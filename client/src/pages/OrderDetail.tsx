@@ -246,9 +246,17 @@ export default function OrderDetail() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">{order.orderNumber}</h1>
-        <p className="text-gray-600">訂單詳情</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{order.orderNumber}</h1>
+          <p className="text-gray-600">訂單詳情</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setLocation('/admin')}
+        >
+          ← 返回
+        </Button>
       </div>
 
       <Card className="mb-6">
