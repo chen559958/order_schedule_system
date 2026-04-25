@@ -464,3 +464,45 @@ export async function deleteOrderItemsByOrderId(orderId: number) {
   const { orderItems } = await import("../drizzle/schema");
   await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
 }
+
+
+// 執行數據庫遷移
+export async function runMigrations() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Migration] Database not available");
+    return;
+  }
+
+  try {
+    console.log("[Migration] Starting database migrations...");
+    
+    // 添加 itemLocation 和 photoUrl 欄位到 orders 表
+    const migrations = [
+      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`itemLocation\` text;`,
+      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`photoUrl\` text;`,
+    ];
+
+    for (const migration of migrations) {
+      try {
+        await db.execute(migration);
+        console.log(`[Migration] ✅ Executed: ${migration}`);
+      } catch (error: any) {
+        if (error.message?.includes('Duplicate column') || error.code === 'ER_DUP_FIELDNAME') {
+          console.log(`[Migration] ⚠️ Column already exists: ${migration}`);
+        } else {
+          console.error(`[Migration] ❌ Error: ${error.message}`);
+        }
+      }
+    }
+
+    console.log("[Migration] Database migrations completed");
+  } catch (error: any) {
+    console.error("[Migration] Failed to run migrations:", error.message);
+  }
+}
+
+// 在模塊加載時執行遷移
+if (process.env.NODE_ENV !== 'test') {
+  runMigrations().catch(err => console.error("[Migration] Initialization error:", err));
+}

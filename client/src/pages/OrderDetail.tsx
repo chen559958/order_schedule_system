@@ -36,9 +36,8 @@ interface Order {
 }
 
 export default function OrderDetail() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const orderNumber = location.startsWith('/order/') ? location.substring(7) : '';
-  const [, setLocation] = useLocation();
   const { user, isLoading: userLoading } = useAuth();
 
   // 狀態管理
