@@ -62,7 +62,7 @@ export const schedules = mysqlTable("schedules", {
 	orderId: int().notNull(),
 	scheduledDate: timestamp({ mode: 'string' }).notNull(),
 	deliveryTime: varchar({ length: 10 }),
-	isCompleted: tinyint({ mode: 'boolean' }).default(false).notNull(),
+	isCompleted: tinyint().default(false).notNull(),
 	createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
 },
