@@ -418,7 +418,7 @@ export async function getOrderItems(orderId: number) {
         )
       ) as photos
     FROM orderItems oi
-    LEFT JOIN orderItemPhotos oip ON oi.id = oip.itemId
+    LEFT JOIN orderItemPhotos oip ON oip.itemId = oi.id
     WHERE oi.orderId = ?
     GROUP BY oi.id
     ORDER BY oi.id
