@@ -71,8 +71,8 @@ export default function OrderDetail() {
 
   // 獲取訂單項目
   const { data: orderItems, refetch: refetchOrderItems } = trpc.orderItem.getByOrderId.useQuery(
-    { orderId: order?.id || 0 },
-    { enabled: !!order?.id }
+    { orderId: queriedOrder?.id || 0 },
+    { enabled: !!queriedOrder?.id }
   );
 
   // 獲取多張照片

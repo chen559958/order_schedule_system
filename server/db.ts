@@ -401,39 +401,13 @@ export async function getOrderItems(orderId: number) {
   
   const { orderItems } = await import("../drizzle/schema");
   
-  // 使用 SQL 查詢 orderItems 及其照片
-  const result = await db.execute(`
-    SELECT 
-      oi.id,
-      oi.orderId,
-      oi.itemNumber,
-      oi.notes,
-      oi.photoUrl,
-      JSON_ARRAYAGG(
-        CASE 
-          WHEN oip.id IS NOT NULL THEN JSON_OBJECT(
-            'id', oip.id,
-            'itemId', oip.itemId,
-            'photoUrl', oip.photoUrl,
-            'createdAt', oip.createdAt
-          )
-        END
-      ) as photos
-    FROM orderItems oi
-    LEFT JOIN orderItemPhotos oip ON oip.itemId = oi.id
-    WHERE oi.orderId = ?
-    GROUP BY oi.id
-    ORDER BY oi.id
-  `, [orderId]);
+  // 粗简查詢: 先查詢 orderItems
+  const result = await db.execute(
+    `SELECT id, orderId, itemNumber, notes, photoUrl FROM orderItems WHERE orderId = ? ORDER BY id`,
+    [orderId]
+  );
   
-  // 清理照片數組，移除 NULL 值
-  return (result as any[]).map((item: any) => ({
-    ...item,
-    photos: item.photos
-      ? (typeof item.photos === 'string' ? JSON.parse(item.photos) : item.photos)
-          .filter((p: any) => p && p.id !== null)
-      : []
-  }));
+  return result as any[];
 }
 
 export async function createOrderItem(orderId: number, itemNumber: string, notes?: string) {
