@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 
 export default function AdminAnalytics() {
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  
   // 獲取所有訂單
   const { data: allOrders = [], isLoading } = trpc.order.getAll.useQuery();
 
@@ -58,6 +61,13 @@ export default function AdminAnalytics() {
     };
   }, [monthlyStats]);
 
+  // 計算選定月份統計
+  const selectedMonthStats = useMemo(() => {
+    if (!selectedMonth) return null;
+    const stat = monthlyStats.find((s) => s.monthKey === selectedMonth);
+    return stat || null;
+  }, [selectedMonth, monthlyStats]);
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -97,10 +107,47 @@ export default function AdminAnalytics() {
           </Card>
         </div>
 
+        {/* 選定月份統計摘要 */}
+        {selectedMonthStats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
+            <div>
+              <p className="text-gray-400 text-sm mb-2">選定月份</p>
+              <p className="text-2xl font-bold text-blue-400">{selectedMonthStats.month}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm mb-2">月份營業額</p>
+              <p className="text-2xl font-bold text-white">NT${selectedMonthStats.revenue}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm mb-2">月份訂單數</p>
+              <p className="text-2xl font-bold text-white">{selectedMonthStats.orderCount}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm mb-2">月份袋數</p>
+              <p className="text-2xl font-bold text-white">{selectedMonthStats.bagCount}</p>
+            </div>
+          </div>
+        )}
+
         {/* 月份統計表 */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-white">月份統計</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-white">月份統計</CardTitle>
+              <div className="flex gap-2">
+                {monthlyStats.map((stat) => (
+                  <Button
+                    key={stat.monthKey}
+                    variant={selectedMonth === stat.monthKey ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedMonth(selectedMonth === stat.monthKey ? null : stat.monthKey)}
+                    className="text-xs"
+                  >
+                    {stat.month}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -120,17 +167,19 @@ export default function AdminAnalytics() {
                     </tr>
                   </thead>
                   <tbody>
-                    {monthlyStats.map((stat, index) => (
-                      <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50">
-                        <td className="py-3 px-4 text-white">{stat.month}</td>
-                        <td className="py-3 px-4 text-white font-semibold">NT${stat.revenue}</td>
-                        <td className="py-3 px-4 text-gray-300">{stat.orderCount}</td>
-                        <td className="py-3 px-4 text-gray-300">{stat.bagCount}</td>
-                        <td className="py-3 px-4 text-gray-300">
-                          NT${stat.orderCount > 0 ? Math.round(stat.revenue / stat.orderCount) : 0}
-                        </td>
-                      </tr>
-                    ))}
+                    {monthlyStats
+                      .filter((stat) => !selectedMonth || stat.monthKey === selectedMonth)
+                      .map((stat, index) => (
+                        <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50">
+                          <td className="py-3 px-4 text-white">{stat.month}</td>
+                          <td className="py-3 px-4 text-white font-semibold">NT${stat.revenue}</td>
+                          <td className="py-3 px-4 text-gray-300">{stat.orderCount}</td>
+                          <td className="py-3 px-4 text-gray-300">{stat.bagCount}</td>
+                          <td className="py-3 px-4 text-gray-300">
+                            NT${stat.orderCount > 0 ? Math.round(stat.revenue / stat.orderCount) : 0}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -148,7 +197,9 @@ export default function AdminAnalytics() {
               <div className="text-center text-gray-500 py-8">暫無訂單數據</div>
             ) : (
               <div className="space-y-4">
-                {monthlyStats.map((stat, index) => (
+                {monthlyStats
+                  .filter((stat) => !selectedMonth || stat.monthKey === selectedMonth)
+                  .map((stat, index) => (
                   <div key={index}>
                     <div className="flex justify-between mb-2">
                       <span className="text-gray-300">{stat.month}</span>
