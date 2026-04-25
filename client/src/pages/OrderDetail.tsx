@@ -143,16 +143,26 @@ export default function OrderDetail() {
   };
 
   // 完成訂單
+  const updateProgressMutation = trpc.order.updateProgress.useMutation();
+
   const handleCompleteOrder = () => {
     if (!order) return;
     
-    // 顯示確認彈出視窗
     const confirmed = window.confirm(`確認該訂單（${order.orderNumber}）已完成？`);
     if (confirmed) {
-      // TODO: 調用後端 API 完成訂單
-      console.log('Order completed:', order.orderNumber);
-      // 完成後導向首頁
-      setLocation("/");
+      updateProgressMutation.mutate(
+        { orderId: order.id, progress: 'completed' },
+        {
+          onSuccess: () => {
+            console.log('Order completed:', order.orderNumber);
+            setLocation("/customer/home");
+          },
+          onError: (error) => {
+            console.error('Failed to complete order:', error);
+            alert('完成訂單失敗，請重試');
+          },
+        }
+      );
     }
   };
 

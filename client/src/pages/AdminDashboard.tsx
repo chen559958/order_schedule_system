@@ -56,7 +56,7 @@ export default function AdminDashboard() {
       refetch();
       // 導航到營業概況頁面
       setTimeout(() => {
-        setLocation("/admin/business");
+        setLocation("/admin/analytics");
       }, 500);
     },
   });

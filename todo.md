@@ -336,15 +336,15 @@
 - [x] 營業概況統計修複 - 確保只統計已完成訂單
 
 
-## 緊急修復 - 新增衣物失敗
-- [ ] 確保 prisma/schema.prisma 中 OrderItem 的 itemNumber 是 String 型別
-- [ ] 執行 npx prisma db push --accept-data-loss 同步數據庫
-- [ ] 檢查 orderItems 的 orderId 欄位類型和關聯邏輯
-- [ ] 驗證新增衣物功能正常工作
+## 紧急修複 - 新增衣物失敗
+- [x] 確保 prisma/schema.prisma 中 OrderItem 的 itemNumber 是 String 型別
+- [x] 執行 npx prisma db push --accept-data-loss 同步數據庫
+- [x] 検查 orderItems 的 orderId 欄位類型和關聯邏輯
+- [x] 驗證新增衣物功能正常工作
 
 ## 功能驗證
-- [ ] 驗證疊加模式已正確實現（position: fixed + z-index: 999）
-- [ ] 驗證完成訂單流程（彈窗確認 → 從首頁消失 → 進入歷史訂單）
+- [x] 驗證疖疊模式已正確實現（position: fixed + z-index: 999）
+- [x] 驗證完成訂單流程（彈窗確認 → 從首頁消失 → 進入歷史訂單）
 
 ## 新功能 - 營業統計月份選擇
 - [x] 添加月份選擇器到營業概況頁面

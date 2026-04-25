@@ -320,19 +320,30 @@ export const appRouter = router({
         progress: z.enum(['pending', 'received', 'washing', 'returning', 'completed']),
       }))
       .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== 'admin') {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Only admins can update order progress',
-          });
-        }
-        
         const db = await getDb();
         if (!db) throw new Error('Database not available');
         
+        // 検查訂單所有權
+        const { orders: ordersTable } = await import("../drizzle/schema");
+        const order = await db.select().from(ordersTable).where(eq(ordersTable.id, input.orderId)).limit(1);
+        
+        if (!order || order.length === 0) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Order not found',
+          });
+        }
+        
+        // 客戶端用戶只能更新自己的訂單，管理元可以更新任何訂單
+        if (ctx.user.role !== 'admin' && order[0].customerId !== ctx.user.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'You can only update your own orders',
+          });
+        }
+        
         // 使用 Drizzle query builder 更新訂單進度
         // 不手動設定 updatedAt，讓資料庫自動更新
-        const { orders: ordersTable } = await import("../drizzle/schema");
         await db.update(ordersTable).set({
           progress: input.progress,
         }).where(eq(ordersTable.id, input.orderId));
