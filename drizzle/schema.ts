@@ -47,6 +47,8 @@ export const orders = mysqlTable("orders", {
 	progress: mysqlEnum(['pending','received','washing','returning','completed']).default('pending').notNull(),
 	estimatedCompletion: timestamp({ mode: 'string' }),
 	completedAt: timestamp({ mode: 'string' }),
+	itemLocation: text(),
+	photoUrl: text(),
 	createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
 	updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
 },

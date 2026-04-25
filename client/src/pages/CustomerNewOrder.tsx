@@ -142,6 +142,8 @@ export default function CustomerNewOrder() {
       bagCount: parseInt(bagCount),
       paymentMethod: paymentMethod,
       notes: notes || undefined,
+      itemLocation: itemLocation as "lobby" | "door" | "other",
+      orderPhotos: orderPhotos.length > 0 ? orderPhotos : undefined,
     });
   };
 

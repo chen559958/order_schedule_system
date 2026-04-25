@@ -170,6 +170,7 @@ export const appRouter = router({
           paymentMethod: z.enum(["cash", "credit_card", "line_pay", "points"]),
           notes: z.string().optional(),
           itemLocation: z.enum(["lobby", "door", "other"]).optional(),
+          orderPhotos: z.array(z.string()).optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -185,6 +186,7 @@ export const appRouter = router({
         }
 
         // 直接使用 userId 作為 customerId（因為外鍵指向 users.id）
+        const photoUrl = input.orderPhotos && input.orderPhotos.length > 0 ? input.orderPhotos[0] : null;
         const orderId = await createOrder({
           customerId: ctx.user.id,
           deliveryType: input.deliveryType,
@@ -194,6 +196,7 @@ export const appRouter = router({
           paymentStatus: "unpaid",
           orderStatus: "pending",
           itemLocation: input.itemLocation || null,
+          photoUrl: photoUrl,
         });
 
         // Create schedule for the order

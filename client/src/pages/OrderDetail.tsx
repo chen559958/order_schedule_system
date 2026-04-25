@@ -31,6 +31,8 @@ interface Order {
   customerId: number;
   bagCount: number;
   notes?: string;
+  itemLocation?: string | null;
+  photoUrl?: string | null;
 }
 
 export default function OrderDetail() {
@@ -78,166 +80,144 @@ export default function OrderDetail() {
   );
 
   useEffect(() => {
-    console.log('[DEBUG] orderItems query result:', { orderItems, itemsError, itemsLoading });
-    if (itemsError) {
-      console.error('[ERROR] orderItems query error:', itemsError);
+    if (queriedOrder) {
+      setOrder(queriedOrder as Order);
+      setIsLoading(false);
     }
-  }, [itemsError, orderItems, itemsLoading]);
+  }, [queriedOrder]);
 
-  // 獲取多張照片
-  const getPhotosQuery = (itemId: number) => {
-    return trpc.orderItem.getPhotos.useQuery(
-      { itemId },
-      { enabled: !!itemId }
-    );
-  };
+  useEffect(() => {
+    if (orderItems) {
+      console.log('[DEBUG] Order items updated:', orderItems);
+      setItems(orderItems as OrderItem[]);
+    }
+  }, [orderItems]);
 
-  // 創建衣物編號的 mutation
+  // 創建訂單項目 mutation
   const createItemMutation = trpc.orderItem.create.useMutation({
     onSuccess: () => {
-      refetchOrderItems();
+      setShowItemDialog(false);
       setItemCount(0);
-      setErrorMessage("");
+      refetchOrderItems();
     },
     onError: (error) => {
-      setErrorMessage(`新增衣物失敗: ${error.message}`);
+      setErrorMessage(`創建項目失敗: ${error.message}`);
     },
   });
 
-  // 更新衣物備註的 mutation
-  const updateItemMutation = trpc.orderItem.update.useMutation({
+  // 編輯訂單項目 mutation
+  const editItemMutation = trpc.orderItem.update.useMutation({
     onSuccess: () => {
-      refetchOrderItems();
       setEditingItemId(null);
       setEditingNotes("");
+      refetchOrderItems();
+    },
+    onError: (error) => {
+      setErrorMessage(`編輯項目失敗: ${error.message}`);
     },
   });
 
-  // 刪除衣物的 mutation
+  // 刪除訂單項目 mutation
   const deleteItemMutation = trpc.orderItem.delete.useMutation({
     onSuccess: () => {
       refetchOrderItems();
     },
-  });
-
-  // 添加照片的 mutation
-  const addPhotoMutation = trpc.orderItem.addPhoto.useMutation({
-    onSuccess: () => {
-      console.log('[DEBUG] addPhotoMutation success, refetching items');
-      refetchOrderItems();
-    },
     onError: (error) => {
-      console.error('[ERROR] addPhotoMutation error:', error.message);
-      setErrorMessage(`保存照片失敗: ${error.message}`);
+      setErrorMessage(`刪除項目失敗: ${error.message}`);
     },
   });
-
-  // 刪除照片的 mutation
-  const deletePhotoMutation = trpc.orderItem.deletePhoto.useMutation({
-    onSuccess: () => {
-      refetchOrderItems();
-    },
-  });
-
-  // 監聽訂單
-  useEffect(() => {
-    if (queriedOrder) {
-      if (queriedOrder.id) {
-        setOrder(queriedOrder);
-      }
-      setIsLoading(false);
-    }
-  }, [queriedOrder, orderLoading]);
-
-  // 監聽訂單項目
-  useEffect(() => {
-    console.log('[DEBUG] orderItems changed:', orderItems);
-    if (orderItems) {
-      // 按 itemNumber 排序
-      const sortedItems = [...orderItems].sort((a, b) => {
-        const aNum = parseInt(a.itemNumber.split('-').pop() || '0');
-        const bNum = parseInt(b.itemNumber.split('-').pop() || '0');
-        return aNum - bNum;
-      });
-      setItems(sortedItems);
-    }
-  }, [orderItems]);
 
   // 拍照功能
-  const handleTakePhoto = async (itemId: number) => {
-    setPhotoItemId(itemId);
+  const handleTakePhoto = () => {
+    setPhotoItemId(null);
     fileInputRef.current?.click();
   };
 
-  const handlePhotoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !photoItemId) return;
+  // 處理照片上傳
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    console.log('[DEBUG] 開始上傳照片:', { itemId: photoItemId, fileName: file.name, fileSize: file.size });
-    setIsUploadingPhoto(true);
     try {
+      setIsUploadingPhoto(true);
+      
+      // 上傳照片到 S3
       const formData = new FormData();
       formData.append('file', file);
-
+      
       const response = await fetch('/api/upload-photo', {
         method: 'POST',
         body: formData,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`上傳失敗: ${errorData.error || response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('[DEBUG] 上傳成功:', { url: data.url });
       
-      console.log('[DEBUG] 開始保存照片到資料庫, itemId:', photoItemId);
-      await addPhotoMutation.mutateAsync({
-        itemId: photoItemId,
-        photoUrl: data.url,
-      });
-
-      console.log('[DEBUG] 照片已保存到資料庫');
-      setPhotoItemId(null);
-      setErrorMessage('');
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      const photoUrl = data.url;
+      
+      console.log('[DEBUG] Photo uploaded:', photoUrl);
+      
+      // 保存照片到衣物
+      if (photoItemId) {
+        await trpc.orderItem.addPhoto.mutate({
+          itemId: photoItemId,
+          photoUrl: photoUrl,
+        });
+        
+        console.log('[DEBUG] Photo saved to item');
+        refetchOrderItems();
+      }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '未知錯誤';
-      console.error('[ERROR] 上傳照片失敗:', errorMsg);
-      setErrorMessage(`上傳照片失敗: ${errorMsg}`);
+      console.error('[ERROR] Photo upload failed:', error);
+      setErrorMessage("照片上傳失敗，請重試");
     } finally {
       setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
+  // 生成衣物編號
   const handleGenerateItems = async () => {
-    if (!order || itemCount <= 0) {
-      setErrorMessage("請輸入有效的衣物數量");
+    if (!order?.id || itemCount <= 0) {
+      alert("請填入正確的衣物數量");
       return;
     }
 
     try {
-      // 順序生成衣物編號，確保不會重複
       for (let i = 1; i <= itemCount; i++) {
         const itemNumber = `${order.orderNumber}-${String(i).padStart(2, '0')}`;
-        console.log(`[DEBUG] Creating item: ${itemNumber}`);
         await createItemMutation.mutateAsync({
           orderId: order.id,
-          itemNumber,
+          itemNumber: itemNumber,
+          notes: "",
         });
-        // 等待 mutation 完成後再繼續下一個
+        
+        // 添加延遲確保順序生成
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      setShowItemDialog(false);
-      setItemCount(0);
     } catch (error) {
-      console.error('生成衣物編號失敗:', error);
-      setErrorMessage(`生成失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
+      console.error('[ERROR] Generate items failed:', error);
     }
   };
 
-  if (isLoading) {
-    return <div className="p-4">載入中...</div>;
+  // 保存編輯的備註
+  const handleSaveNotes = async () => {
+    if (editingItemId) {
+      await editItemMutation.mutateAsync({
+        itemId: editingItemId,
+        notes: editingNotes,
+      });
+    }
+  };
+
+  if (isLoading || orderLoading) {
+    return <div className="p-4">加載中...</div>;
+  }
+
+  if (orderError || itemsError) {
+    return <div className="p-4 text-red-600">加載失敗: {orderError?.message || itemsError?.message}</div>;
   }
 
   if (!order) {
@@ -273,6 +253,31 @@ export default function OrderDetail() {
               <p className="text-sm text-gray-600">袋數</p>
               <p className="font-semibold">{order.bagCount}</p>
             </div>
+            <div>
+              <p className="text-sm text-gray-600">衣物放置地點</p>
+              <p className="font-semibold">
+                {order.itemLocation === 'lobby' && '樂住市集'}
+                {order.itemLocation === 'door' && '家門口'}
+                {order.itemLocation === 'other' && '其他'}
+                {!order.itemLocation && '未指定'}
+              </p>
+            </div>
+            {order.photoUrl && (
+              <div>
+                <p className="text-sm text-gray-600">客戶上傳的照片</p>
+                <div className="mt-2">
+                  <img
+                    src={order.photoUrl}
+                    alt="Customer photo"
+                    className="w-24 h-24 object-cover rounded border cursor-pointer hover:opacity-80"
+                    onClick={() => {
+                      setSelectedPhotoUrl(order.photoUrl);
+                      setShowPhotoModal(true);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -301,7 +306,10 @@ export default function OrderDetail() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleTakePhoto(item.id)}
+                      onClick={() => {
+                        setPhotoItemId(item.id);
+                        fileInputRef.current?.click();
+                      }}
                       disabled={isUploadingPhoto}
                     >
                       拍照
@@ -329,16 +337,46 @@ export default function OrderDetail() {
                   {/* 照片列表 */}
                   {item.photoUrl && (
                     <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">主照片：</p>
+                      <p className="text-sm text-gray-600 mb-2">照片</p>
                       <img
                         src={item.photoUrl}
-                        alt={`照片 ${item.id}`}
-                        className="w-full h-48 object-cover rounded cursor-pointer"
+                        alt={item.itemNumber}
+                        className="w-32 h-32 object-cover rounded border cursor-pointer hover:opacity-80"
                         onClick={() => {
-                          setSelectedPhotoUrl(item.photoUrl!);
+                          setSelectedPhotoUrl(item.photoUrl);
                           setShowPhotoModal(true);
                         }}
                       />
+                    </div>
+                  )}
+
+                  {/* 編輯備註對話框 */}
+                  {editingItemId === item.id && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded">
+                      <Textarea
+                        value={editingNotes}
+                        onChange={(e) => setEditingNotes(e.target.value)}
+                        placeholder="輸入備註"
+                        className="mb-2"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveNotes}
+                        >
+                          保存
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingItemId(null);
+                            setEditingNotes("");
+                          }}
+                        >
+                          取消
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -348,13 +386,6 @@ export default function OrderDetail() {
         </CardContent>
       </Card>
 
-      {/* 錯誤信息顯示 */}
-      {errorMessage && (
-        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">
-          {errorMessage}
-        </div>
-      )}
-
       {/* 生成衣物編號對話框 */}
       <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
         <DialogContent>
@@ -362,11 +393,6 @@ export default function OrderDetail() {
             <DialogTitle>生成衣物編號</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {errorMessage && (
-              <div className="p-3 bg-red-100 text-red-800 rounded">
-                {errorMessage}
-              </div>
-            )}
             <div>
               <label className="text-sm font-medium">衣物數量</label>
               <Input
@@ -379,58 +405,34 @@ export default function OrderDetail() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowItemDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowItemDialog(false)}
+            >
               取消
             </Button>
-            <Button onClick={handleGenerateItems} disabled={createItemMutation.isPending}>
+            <Button
+              onClick={handleGenerateItems}
+              disabled={createItemMutation.isPending}
+            >
               {createItemMutation.isPending ? '生成中...' : '生成'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 編輯備註對話框 */}
-      <Dialog open={editingItemId !== null} onOpenChange={() => setEditingItemId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>編輯備註</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              value={editingNotes}
-              onChange={(e) => setEditingNotes(e.target.value)}
-              placeholder="輸入備註"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingItemId(null)}>
-              取消
-            </Button>
-            <Button
-              onClick={() => {
-                if (editingItemId) {
-                  updateItemMutation.mutate({
-                    itemId: editingItemId,
-                    notes: editingNotes,
-                  });
-                }
-              }}
-              disabled={updateItemMutation.isPending}
-            >
-              {updateItemMutation.isPending ? '保存中...' : '保存'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 照片預覽 Modal */}
+      {/* 照片預覽對話框 */}
       <Dialog open={showPhotoModal} onOpenChange={setShowPhotoModal}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>照片預覽</DialogTitle>
           </DialogHeader>
           {selectedPhotoUrl && (
-            <img src={selectedPhotoUrl} alt="預覽" className="w-full" />
+            <img
+              src={selectedPhotoUrl}
+              alt="Preview"
+              className="w-full h-auto rounded"
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -440,9 +442,22 @@ export default function OrderDetail() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={handlePhotoSelected}
-        className="hidden"
+        onChange={handlePhotoUpload}
+        style={{ display: 'none' }}
+        capture="environment"
       />
+
+      {/* 錯誤提示 */}
+      {errorMessage && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded">
+          <div className="flex justify-between items-center">
+            <p>{errorMessage}</p>
+            <button onClick={() => setErrorMessage("")}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
