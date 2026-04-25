@@ -293,39 +293,37 @@ export default function OrderDetail() {
             <div className="space-y-4">
               {items.map((item) => (
                 <div key={item.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold">{item.itemNumber}</p>
-                      <p className="text-sm text-gray-600">{item.notes || '無備註'}</p>
-                    </div>
-                    <div className="space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleTakePhoto(item.id)}
-                        disabled={isUploadingPhoto}
-                      >
-                        拍照
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingItemId(item.id);
-                          setEditingNotes(item.notes || '');
-                        }}
-                      >
-                        編輯
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteItemMutation.mutate({ itemId: item.id })}
-                        disabled={deleteItemMutation.isPending}
-                      >
-                        {deleteItemMutation.isPending ? '刪除中...' : '刪除'}
-                      </Button>
-                    </div>
+                  <div className="mb-3">
+                    <p className="font-semibold text-lg">{item.itemNumber}</p>
+                    <p className="text-sm text-gray-600 mt-1">{item.notes || '無備註'}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleTakePhoto(item.id)}
+                      disabled={isUploadingPhoto}
+                    >
+                      拍照
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingItemId(item.id);
+                        setEditingNotes(item.notes || '');
+                      }}
+                    >
+                      編輯
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteItemMutation.mutate({ itemId: item.id })}
+                      disabled={deleteItemMutation.isPending}
+                    >
+                      {deleteItemMutation.isPending ? '刪除中...' : '刪除'}
+                    </Button>
                   </div>
 
                   {/* 照片列表 */}
