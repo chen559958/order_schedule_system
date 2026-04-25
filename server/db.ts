@@ -415,7 +415,8 @@ export async function createOrderItem(orderId: number, itemNumber: string, notes
   const result = await db.insert(orderItems).values({
     orderId,
     itemNumber,
-    notes: notes || null,
+    notes: notes && notes.length > 0 ? notes : null,
+    photoUrl: null,
   });
   
   return result;

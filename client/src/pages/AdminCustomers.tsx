@@ -8,12 +8,20 @@ export default function AdminCustomers() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // 搜尋時清除選中的客戶
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSelectedCustomerId(null);
+    }
+  };
+
   // 獲取所有客戶
   const { data: customers = [], isLoading: customersLoading } = trpc.adminCustomer.getAll.useQuery();
 
-  // 搜尋篩選客戶
+  // 搜尋篩選客戶 - 搜尋前不顯示任何會員
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers;
+    if (!searchQuery.trim()) return [];  // 搜尋前返回空陣列
     const query = searchQuery.toLowerCase();
     return customers.filter((customer: any) => 
       customer.fullName.toLowerCase().includes(query) ||
@@ -73,7 +81,7 @@ export default function AdminCustomers() {
                   type="text"
                   placeholder="按姓名或電話搜尋..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />
                 {customersLoading ? (

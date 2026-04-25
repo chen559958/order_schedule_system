@@ -51,6 +51,7 @@ export default function OrderDetail() {
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [photoItemId, setPhotoItemId] = useState<number | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 監聽用戶變化，同步數據
@@ -77,6 +78,10 @@ export default function OrderDetail() {
     onSuccess: () => {
       refetchOrderItems();
       setItemCount(0);
+      setErrorMessage("");
+    },
+    onError: (error) => {
+      setErrorMessage(`新增衣物失敗: ${error.message}`);
     },
   });
 
@@ -263,6 +268,11 @@ export default function OrderDetail() {
                 {createItemMutation.isPending ? "生成中..." : "輸入"}
               </Button>
             </div>
+            {errorMessage && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {errorMessage}
+              </div>
+            )}
           </CardContent>
         </Card>
 
