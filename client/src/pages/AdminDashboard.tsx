@@ -51,14 +51,23 @@ export default function AdminDashboard() {
   // 完成訂單的 mutation
   const completeOrderMutation = trpc.schedule.completeOrder.useMutation({
     onSuccess: (_, variables) => {
+      console.log("[DEBUG] completeOrder onSuccess called with orderId:", variables.orderId);
       // 從待處理訂單中移除
-      setPendingOrders(pendingOrders.filter(order => order.id !== variables.orderId));
+      const updatedOrders = pendingOrders.filter(order => order.id !== variables.orderId);
+      console.log("[DEBUG] Updated orders after filter:", updatedOrders);
+      setPendingOrders(updatedOrders);
+      setFilteredOrders(updatedOrders);
       // 重新獲取待處理訂單列表
+      console.log("[DEBUG] Calling refetch...");
       refetch();
       // 導航到營業概況頁面
       setTimeout(() => {
+        console.log("[DEBUG] Navigating to /admin/analytics");
         setLocation("/admin/analytics");
       }, 500);
+    },
+    onError: (error) => {
+      console.error("[ERROR] completeOrder failed:", error);
     },
   });
 
@@ -112,10 +121,21 @@ export default function AdminDashboard() {
 
   const handleProgressSelect = (progress: string) => {
     if (selectedOrderId) {
-      updateProgressMutation.mutate({
-        orderId: selectedOrderId,
-        progress: progress as any,
-      });
+      console.log("[DEBUG] handleProgressSelect called with progress:", progress);
+      if (progress === 'completed') {
+        // 如果選擇完成，使用 completeOrderMutation
+        console.log("[DEBUG] Calling completeOrderMutation for orderId:", selectedOrderId);
+        setShowProgressDialog(false);
+        completeOrderMutation.mutate({
+          orderId: selectedOrderId,
+        });
+      } else {
+        // 其他進度選擇使用 updateProgressMutation
+        updateProgressMutation.mutate({
+          orderId: selectedOrderId,
+          progress: progress as any,
+        });
+      }
     }
   };
 
@@ -126,6 +146,8 @@ export default function AdminDashboard() {
 
   const confirmCompleteOrder = () => {
     if (selectedOrderForComplete) {
+      console.log("[DEBUG] Confirming complete order:", selectedOrderForComplete.id);
+      setShowCompleteConfirm(false);
       completeOrderMutation.mutate({
         orderId: selectedOrderForComplete.id,
       });
