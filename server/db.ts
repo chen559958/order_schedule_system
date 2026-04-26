@@ -380,7 +380,22 @@ export async function getCustomerOrderHistory(customerId: number) {
   const db = await getDb();
   if (!db) return [];
   return await db
-    .select()
+    .select({
+      id: orders.id,
+      customerId: orders.customerId,
+      deliveryType: orders.deliveryType,
+      bagCount: orders.bagCount,
+      paymentMethod: orders.paymentMethod,
+      paymentStatus: orders.paymentStatus,
+      notes: orders.notes,
+      orderStatus: orders.orderStatus,
+      orderNumber: orders.orderNumber,
+      progress: orders.progress,
+      estimatedCompletion: orders.estimatedCompletion,
+      completedAt: orders.completedAt,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt,
+    })
     .from(orders)
     .where(eq(orders.customerId, customerId))
     .orderBy(orders.createdAt);
