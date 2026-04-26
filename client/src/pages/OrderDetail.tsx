@@ -126,6 +126,17 @@ export default function OrderDetail() {
     },
   });
 
+  // 添加照片 mutation
+  const addPhotoMutation = trpc.orderItem.addPhoto.useMutation({
+    onSuccess: () => {
+      console.log('[DEBUG] Photo saved to item');
+      refetchOrderItems();
+    },
+    onError: (error) => {
+      setErrorMessage(`照片保存失敗: ${error.message}`);
+    },
+  });
+
   // 拍照功能
   const handleTakePhoto = () => {
     setPhotoItemId(null);
@@ -158,13 +169,10 @@ export default function OrderDetail() {
       
       // 保存照片到衣物
       if (photoItemId) {
-        await trpc.orderItem.addPhoto.mutate({
+        addPhotoMutation.mutate({
           itemId: photoItemId,
           photoUrl: photoUrl,
         });
-        
-        console.log('[DEBUG] Photo saved to item');
-        refetchOrderItems();
       }
     } catch (error) {
       console.error('[ERROR] Photo upload failed:', error);
