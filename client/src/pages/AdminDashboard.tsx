@@ -120,12 +120,11 @@ export default function AdminDashboard() {
     if (selectedOrderId) {
       console.log("[DEBUG] handleProgressSelect called with progress:", progress);
       if (progress === 'completed') {
-        // 如果選擇完成，使用 completeOrderMutation
-        console.log("[DEBUG] Calling completeOrderMutation for orderId:", selectedOrderId);
+        // 如果選擇完成，先顯示確認對話框
+        console.log("[DEBUG] Showing complete confirmation for orderId:", selectedOrderId);
         setShowProgressDialog(false);
-        completeOrderMutation.mutate({
-          orderId: selectedOrderId,
-        });
+        setSelectedOrderForComplete(selectedOrder);
+        setShowCompleteConfirm(true);
       } else {
         // 其他進度選擇使用 updateProgressMutation
         updateProgressMutation.mutate({
