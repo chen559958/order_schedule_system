@@ -288,7 +288,7 @@ export default function CustomerNewOrder() {
           {/* 新增相片 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">新增相片（協助確認實際位置）</CardTitle>
+              <CardTitle className="text-2xl text-gray-900">放置地點照片（協助確認實際位置）</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button

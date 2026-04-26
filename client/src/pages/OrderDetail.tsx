@@ -255,15 +255,15 @@ export default function OrderDetail() {
             <div>
               <p className="text-sm text-gray-600">衣物放置地點</p>
               <p className="font-semibold">
-                {order.itemLocation === 'lobby' && '樂住市集'}
-                {order.itemLocation === 'door' && '家門口'}
+                {order.itemLocation === 'lobby' && '大樓大廳'}
+                {order.itemLocation === 'door' && '住家門口'}
                 {order.itemLocation === 'other' && '其他'}
                 {!order.itemLocation && '未指定'}
               </p>
             </div>
             {order.photoUrl && (
               <div>
-                <p className="text-sm text-gray-600">客戶上傳的照片</p>
+                <p className="text-sm text-gray-600">放置地點照片</p>
                 <div className="mt-2">
                   <img
                     src={order.photoUrl}
