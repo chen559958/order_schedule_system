@@ -339,8 +339,11 @@ export const appRouter = router({
           o.completedAt,
           o.createdAt,
           o.updatedAt,
+          o.itemLocation,
+          o.photoUrl,
           u.name as customerName,
-          u.email as customerEmail
+          u.email as customerEmail,
+          u.phone as customerPhone
         FROM orders o
         LEFT JOIN users u ON o.customerId = u.id
         WHERE o.orderStatus = 'pending'

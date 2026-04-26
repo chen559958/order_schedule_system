@@ -22,7 +22,7 @@ export default function CustomerOrderItems() {
 
   // 獲取訂單信息
   const { data: order, isLoading: orderLoading } = trpc.order.getById.useQuery(
-    { id: orderId || 0 },
+    { orderId: orderId || 0 },
     { enabled: !!orderId }
   );
 
