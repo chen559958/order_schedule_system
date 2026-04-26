@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 export default function CustomerNewOrder() {
@@ -38,14 +39,26 @@ export default function CustomerNewOrder() {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 訂單完成提示窗口狀態
+  const [showOrderCompleteDialog, setShowOrderCompleteDialog] = useState(false);
+
   // 查詢最新的 customer profile
   const { data: customerProfile } = trpc.customer.getProfile.useQuery();
 
   // 創建訂單 mutation
   const createOrderMutation = trpc.order.create.useMutation({
     onSuccess: () => {
-      // 重定向到歷史訂單頁面
-      setLocation("/customer/history");
+      // 顯示訂單完成提示窗口
+      setShowOrderCompleteDialog(true);
+      // 清空表單
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerAddress("");
+      setBagCount("");
+      setNotes("");
+      setItemLocation("");
+      setOrderPhotos([]);
+      setUseUserInfo(false);
     },
     onError: (error) => {
       alert(`建立訂單失敗: ${error.message}`);
@@ -369,6 +382,36 @@ export default function CustomerNewOrder() {
                 className="w-full h-auto rounded"
               />
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* 訂單完成提示窗口 */}
+        <Dialog open={showOrderCompleteDialog} onOpenChange={setShowOrderCompleteDialog}>
+          <DialogContent className="bg-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl font-bold text-green-600">
+                ✓ 訂單完成
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-6 text-center">
+              <p className="text-lg text-gray-700 mb-4">
+                您的訂單已成功提交！
+              </p>
+              <p className="text-sm text-gray-500">
+                我們會盡快處理您的訂單，感謝您的使用。
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  setShowOrderCompleteDialog(false);
+                  setLocation("/customer/home");
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2"
+              >
+                返回首頁
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

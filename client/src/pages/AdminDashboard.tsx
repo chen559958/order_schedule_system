@@ -60,11 +60,8 @@ export default function AdminDashboard() {
       // 重新獲取待處理訂單列表
       console.log("[DEBUG] Calling refetch...");
       refetch();
-      // 導航到營業概況頁面
-      setTimeout(() => {
-        console.log("[DEBUG] Navigating to /admin/analytics");
-        setLocation("/admin/analytics");
-      }, 500);
+      // 停留在首頁，不跳轉
+      setShowCompleteConfirm(false);
     },
     onError: (error) => {
       console.error("[ERROR] completeOrder failed:", error);

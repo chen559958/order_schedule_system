@@ -16,11 +16,11 @@ const PROGRESS_LABELS: Record<string, string> = {
 };
 
 const PROGRESS_COLORS: Record<string, string> = {
-  pending: "bg-gray-100 text-gray-800",
-  received: "bg-blue-100 text-blue-800",
-  washing: "bg-yellow-100 text-yellow-800",
-  returning: "bg-orange-100 text-orange-800",
-  completed: "bg-green-100 text-green-800",
+  pending: "bg-gray-100 text-gray-800 border-gray-300",
+  received: "bg-blue-100 text-blue-800 border-blue-300",
+  washing: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  returning: "bg-orange-100 text-orange-800 border-orange-300",
+  completed: "bg-green-100 text-green-800 border-green-300",
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -120,7 +120,7 @@ export default function CustomerHome() {
                   const orderNumber = getOrderNumber(order);
                   const progress = order.progress || "pending";
                   const progressLabel = PROGRESS_LABELS[progress] || "尚未收件";
-                  const progressColor = PROGRESS_COLORS[progress] || "bg-gray-100 text-gray-800";
+                  const progressColor = PROGRESS_COLORS[progress] || "bg-gray-100 text-gray-800 border-gray-300";
                   return (
                     <div
                       key={order.id}
@@ -144,15 +144,10 @@ export default function CustomerHome() {
                         </div>
                       </div>
 
-                      {/* 進度詳情 */}
-                      <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-base text-blue-800">
-                          <span className="font-semibold">當前進度：</span>
-                          {progress === "completed" && "已完成"}
-                          {progress === "returning" && "準備送回"}
-                          {progress === "washing" && "清洗中"}
-                          {progress === "received" && "已收件"}
-                          {progress === "pending" && "尚未收件"}
+                      {/* 進度詳情 - 彩色區分 */}
+                      <div className={`mt-3 p-4 rounded-lg border ${progressColor}`}>
+                        <p className="text-base font-semibold">
+                          當前進度：{progressLabel}
                         </p>
                       </div>
 
@@ -171,14 +166,21 @@ export default function CustomerHome() {
                         </div>
                       )}
 
-                      {/* 衣物概況按鈕 */}
+                      {/* 衣物概況和衣物編輯號碼按鈕 */}
                       {shouldShowClothingOverview(progress) && (
-                        <div className="mt-4">
+                        <div className="mt-4 flex gap-2">
                           <Button
                             onClick={() => setLocation(`/customer/order/${order.id}/overview`)}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                           >
                             衣物概況
+                          </Button>
+                          <Button
+                            onClick={() => setLocation(`/customer/order/${order.id}/items`)}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                            title="查看衣物編輯號碼及照片"
+                          >
+                            衣物詳情
                           </Button>
                         </div>
                       )}

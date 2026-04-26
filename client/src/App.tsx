@@ -12,6 +12,7 @@ import CustomerHome from "@/pages/CustomerHome";
 import CustomerNewOrder from "@/pages/CustomerNewOrder";
 import CustomerHistory from "@/pages/CustomerHistory";
 import CustomerOrderOverview from "@/pages/CustomerOrderOverview";
+import CustomerOrderItems from "@/pages/CustomerOrderItems";
 import Profile from "@/pages/Profile";
 import OrderDetail from "@/pages/OrderDetail";
 
@@ -116,6 +117,12 @@ export default function App() {
       {location.startsWith("/customer/order/") && location.includes("/overview") && (
         <ProtectedRoute requiredRole="user">
           <CustomerOrderOverview />
+        </ProtectedRoute>
+      )}
+      
+      {location.startsWith("/customer/order/") && location.includes("/items") && (
+        <ProtectedRoute requiredRole="user">
+          <CustomerOrderItems />
         </ProtectedRoute>
       )}
 

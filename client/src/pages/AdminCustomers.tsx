@@ -87,22 +87,18 @@ export default function AdminCustomers() {
                 {customersLoading ? (
                   <div className="text-gray-400">載入中...</div>
                 ) : filteredCustomers.length === 0 ? (
-                  <div className="text-gray-400">暫無會員</div>
+                  <div></div>
                 ) : (
                   <div className="space-y-2">
-                    {filteredCustomers.map((customer: any) => (
-                      <button
+                    {filteredCustomers.slice(0, 3).map((customer: any) => (
+                      <div
                         key={customer.id}
+                        className="bg-gray-800 border border-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-700 transition-colors"
                         onClick={() => setSelectedCustomerId(customer.id)}
-                        className={`w-full text-left p-3 rounded-lg transition-colors ${
-                          selectedCustomerId === customer.id
-                            ? "bg-blue-900 text-white"
-                            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                        }`}
                       >
-                        <p className="font-semibold">{customer.fullName}</p>
+                        <p className="font-semibold text-white">{customer.fullName}</p>
                         <p className="text-xs text-gray-400">{customer.phone}</p>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
